@@ -28,45 +28,66 @@ function calcPercentiles(stat, pool) {
 }
 
 playerRouter.get("/", requireAuth, (req, res) => {
-  const { stat1, stat2, filterMin } = req.query;
+  const { stats, filterMin } = req.query;
 
-  if (!stat1 || !stat2) {
-    return res.status(400).json({ error: "stat1 and stat2 query params are required" });
+  if (!stats) {
+    return res.status(400).json({ error: "stats query param is required" });
   }
-  if (!validStats.includes(stat1) || !validStats.includes(stat2)) {
-    return res.status(400).json({ error: "Invalid stat name" });
+
+  const statList = stats.split(",").map((s) => s.trim());
+
+  if (statList.length < 2) {
+    return res.status(400).json({ error: "At least 2 stats are required" });
   }
-  if (stat1 === stat2) {
-    return res.status(400).json({ error: "stat1 and stat2 must be different" });
+  for (const s of statList) {
+    if (!validStats.includes(s)) {
+      return res.status(400).json({ error: `Invalid stat: ${s}` });
+    }
+  }
+  if (new Set(statList).size !== statList.length) {
+    return res.status(400).json({ error: "Duplicate stats are not allowed" });
   }
 
   const pool = filterMin === "true"
     ? players.filter((p) => (p.stats.Min ?? 0) >= 15)
     : players;
 
-  const getPercentile1 = calcPercentiles(stat1, pool);
-  const getPercentile2 = calcPercentiles(stat2, pool);
+  const percentileFns = {};
+  for (const s of statList) {
+    percentileFns[s] = calcPercentiles(s, pool);
+  }
 
   const ranked = pool
     .map((p) => {
-      const stat1Value = p.stats[stat1] ?? 0;
-      const stat2Value = p.stats[stat2] ?? 0;
-      const stat1Pct = getPercentile1(stat1Value);
-      const stat2Pct = getPercentile2(stat2Value);
+      const statValues = {};
+      const statPcts = {};
+      let combined = 0;
+      for (const s of statList) {
+        const val = p.stats[s] ?? 0;
+        const pct = percentileFns[s](val);
+        statValues[s] = val;
+        statPcts[s] = pct;
+        combined += pct;
+      }
       return {
         id: p.id,
         name: p.name,
         team: p.team,
         year: p.year,
         position: p.position,
-        stat1Value,
-        stat2Value,
-        stat1Pct,
-        stat2Pct,
-        combined: stat1Pct + stat2Pct,
+        statValues,
+        statPcts,
+        combined,
       };
     })
     .sort((a, b) => b.combined - a.combined);
 
-  res.json({ stat1, stat2, results: ranked });
+  res.json({ statList, results: ranked });
+});
+
+// GET /api/players/:playerId — full stats for a single player
+playerRouter.get("/:playerId", requireAuth, (req, res) => {
+  const player = players.find((p) => p.id === req.params.playerId);
+  if (!player) return res.status(404).json({ error: "Player not found" });
+  res.json(player);
 });

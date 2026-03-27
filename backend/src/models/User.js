@@ -16,8 +16,7 @@ const userSchema = new mongoose.Schema({
   watchlist: [
     {
       playerId: { type: String, required: true },
-      stat1: { type: String, required: true },
-      stat2: { type: String, required: true },
+      stats: { type: [String], required: true },
       addedAt: { type: Date, default: Date.now },
     },
   ],

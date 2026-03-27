@@ -5,7 +5,6 @@ import { requireAuth } from "../middleware/auth.js";
 
 export const watchlistRouter = express.Router();
 
-// GET /api/watchlist
 watchlistRouter.get("/", requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
@@ -14,18 +13,23 @@ watchlistRouter.get("/", requireAuth, async (req, res) => {
     const enriched = user.watchlist.map((entry) => {
       const player = players.find((p) => p.id === entry.playerId);
       if (!player) return null;
+
+      const statValues = {};
+      const statList = entry.stats || [];
+      for (const s of statList) {
+        statValues[s] = player.stats[s] ?? 0;
+      }
+
       return {
         playerId: entry.playerId,
-        stat1: entry.stat1,
-        stat2: entry.stat2,
+        stats: statList,
+        statValues,
         addedAt: entry.addedAt,
         name: player.name,
         team: player.team,
         year: player.year,
         position: player.position,
-        stat1Value: player.stats[entry.stat1] ?? 0,
-        stat2Value: player.stats[entry.stat2] ?? 0,
-        combined: (player.stats[entry.stat1] ?? 0) + (player.stats[entry.stat2] ?? 0),
+        allStats: player.stats,
       };
     }).filter(Boolean);
 
@@ -36,12 +40,11 @@ watchlistRouter.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/watchlist
 watchlistRouter.post("/", requireAuth, async (req, res) => {
-  const { playerId, stat1, stat2 } = req.body;
+  const { playerId, stats } = req.body;
 
-  if (!playerId || !stat1 || !stat2) {
-    return res.status(400).json({ error: "playerId, stat1, and stat2 are required" });
+  if (!playerId || !stats || !Array.isArray(stats) || stats.length < 1) {
+    return res.status(400).json({ error: "playerId and stats array are required" });
   }
 
   const playerExists = players.find((p) => p.id === playerId);
@@ -53,14 +56,15 @@ watchlistRouter.post("/", requireAuth, async (req, res) => {
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
+    const statsKey = stats.slice().sort().join(",");
     const alreadySaved = user.watchlist.some(
-      (e) => e.playerId === playerId && e.stat1 === stat1 && e.stat2 === stat2
+      (e) => e.playerId === playerId && e.stats.slice().sort().join(",") === statsKey
     );
     if (alreadySaved) {
       return res.status(409).json({ error: "Player already in watchlist with these stats" });
     }
 
-    user.watchlist.push({ playerId, stat1, stat2 });
+    user.watchlist.push({ playerId, stats });
     await user.save();
 
     res.status(201).json({ message: "Added to watchlist" });
@@ -70,10 +74,11 @@ watchlistRouter.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/watchlist/:playerId?stat1=X&stat2=Y
 watchlistRouter.delete("/:playerId", requireAuth, async (req, res) => {
   const { playerId } = req.params;
-  const { stat1, stat2 } = req.query;
+  const { stats } = req.query;
+
+  const statsKey = stats ? stats.split(",").sort().join(",") : "";
 
   try {
     const user = await User.findById(req.user.userId);
@@ -81,7 +86,7 @@ watchlistRouter.delete("/:playerId", requireAuth, async (req, res) => {
 
     const before = user.watchlist.length;
     user.watchlist = user.watchlist.filter(
-      (e) => !(e.playerId === playerId && e.stat1 === stat1 && e.stat2 === stat2)
+      (e) => !(e.playerId === playerId && e.stats.slice().sort().join(",") === statsKey)
     );
 
     if (user.watchlist.length === before) {

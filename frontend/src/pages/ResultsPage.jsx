@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
 import Header from "../components/Header.jsx";
+import PlayerModal from "../components/PlayerModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function ResultsPage() {
   const { authFetch } = useAuth();
   const [searchParams] = useSearchParams();
-  const stat1 = searchParams.get("stat1");
-  const stat2 = searchParams.get("stat2");
+  const statsParam = searchParams.get("stats");
   const filterMin = searchParams.get("filterMin");
+  const statList = statsParam ? statsParam.split(",") : [];
 
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,18 +17,16 @@ export default function ResultsPage() {
   const [saved, setSaved] = useState(new Set());
   const [saving, setSaving] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  const [modalPlayerId, setModalPlayerId] = useState(null);
 
   useEffect(() => {
     async function fetchPlayers() {
       setLoading(true);
       setError("");
       try {
-        const res = await authFetch(`/api/players?stat1=${stat1}&stat2=${stat2}&filterMin=${filterMin}`);
+        const res = await authFetch(`/api/players?stats=${statsParam}&filterMin=${filterMin}`);
         const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || "Failed to fetch players");
-          return;
-        }
+        if (!res.ok) { setError(data.error || "Failed to fetch players"); return; }
         setResults(data.results);
       } catch {
         setError("Network error — is the server running?");
@@ -36,14 +35,14 @@ export default function ResultsPage() {
       }
     }
     fetchPlayers();
-  }, [stat1, stat2, filterMin]);
+  }, [statsParam, filterMin]);
 
   async function handleSave(player) {
     setSaving(player.id);
     try {
       const res = await authFetch("/api/watchlist", {
         method: "POST",
-        body: JSON.stringify({ playerId: player.id, stat1, stat2 }),
+        body: JSON.stringify({ playerId: player.id, stats: statList }),
       });
       if (res.ok || res.status === 409) {
         setSaved((prev) => new Set(prev).add(player.id));
@@ -62,9 +61,7 @@ export default function ResultsPage() {
       <Header />
       <main className="container">
         <Link to="/" className="back-link">← Back to Search</Link>
-        <h1 className="page-title">
-          Top Players: {stat1} + {stat2}
-        </h1>
+        <h1 className="page-title">Top Players: {statList.join(" + ")}</h1>
 
         {loading && <p className="status-msg">⏳ Loading players…</p>}
         {error && <p className="status-msg error">⚠️ {error}</p>}
@@ -80,8 +77,9 @@ export default function ResultsPage() {
                     <th scope="col">Team</th>
                     <th scope="col">Pos</th>
                     <th scope="col">Year</th>
-                    <th scope="col">{stat1}</th>
-                    <th scope="col">{stat2}</th>
+                    {statList.map((s) => (
+                      <th key={s} scope="col">{s}</th>
+                    ))}
                     <th scope="col">Combined</th>
                     <th scope="col">Save</th>
                   </tr>
@@ -90,22 +88,30 @@ export default function ResultsPage() {
                   {displayed.map((player, index) => (
                     <tr key={player.id}>
                       <td className="rank">{index + 1}</td>
-                      <td>{player.name}</td>
+                      <td>
+                        <button
+                          onClick={() => setModalPlayerId(player.id)}
+                          style={{
+                            background: "none", border: "none", padding: 0,
+                            color: "var(--primary-color)", fontWeight: 600,
+                            cursor: "pointer", textDecoration: "underline",
+                            fontSize: "inherit", textAlign: "left",
+                          }}
+                        >
+                          {player.name}
+                        </button>
+                      </td>
                       <td>{player.team}</td>
                       <td>{player.position}</td>
                       <td>{player.year}</td>
-                      <td>
-                        {player.stat1Value.toFixed(1)}
-                        <span style={{ marginLeft: "0.4rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                          ({player.stat1Pct}th)
-                        </span>
-                      </td>
-                      <td>
-                        {player.stat2Value.toFixed(1)}
-                        <span style={{ marginLeft: "0.4rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                          ({player.stat2Pct}th)
-                        </span>
-                      </td>
+                      {statList.map((s) => (
+                        <td key={s}>
+                          {(player.statValues[s] ?? 0).toFixed(1)}
+                          <span style={{ marginLeft: "0.4rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                            ({player.statPcts[s]}th)
+                          </span>
+                        </td>
+                      ))}
                       <td className="combined">{player.combined}</td>
                       <td>
                         {saved.has(player.id) ? (
@@ -133,7 +139,6 @@ export default function ResultsPage() {
                 </button>
               </div>
             )}
-
             {showAll && (
               <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
                 <button className="btn btn-primary" onClick={() => setShowAll(false)}>
@@ -144,6 +149,13 @@ export default function ResultsPage() {
           </>
         )}
       </main>
+
+      {modalPlayerId && (
+        <PlayerModal
+          playerId={modalPlayerId}
+          onClose={() => setModalPlayerId(null)}
+        />
+      )}
     </>
   );
 }
