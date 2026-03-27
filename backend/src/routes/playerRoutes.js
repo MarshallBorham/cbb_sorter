@@ -4,11 +4,17 @@ import { requireAuth } from "../middleware/auth.js";
 
 export const playerRouter = express.Router();
 
-// GET /api/players?stat1=eFG&stat2=ARate
+const validStats = [
+  "eFG", "TS", "OR", "DR", "ARate", "TO", "Blk", "Stl", "FTRate", "FT",
+  "2P", "3P", "Min", "Shots", "G", "ORTG", "DRTG", "Usg",
+  "FTA", "FTM", "2PM", "2PA", "3PM", "3PA",
+  "FC40", "Close2PM", "Close2PA", "Close2P",
+  "Far2PA", "Far2P", "DunksAtt", "DunksMade", "DunkPct",
+  "BPM", "OBPM", "DBPM", "3P100",
+];
+
 playerRouter.get("/", requireAuth, (req, res) => {
   const { stat1, stat2 } = req.query;
-
-  const validStats = ["eFG", "ARate", "Stl", "Blk", "FTRate", "OR", "DR", "TO", "Min", "Shots", "TS", "2P", "3P", "FT"];
 
   if (!stat1 || !stat2) {
     return res.status(400).json({ error: "stat1 and stat2 query params are required" });
