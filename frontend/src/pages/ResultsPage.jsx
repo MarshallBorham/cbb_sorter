@@ -9,7 +9,11 @@ export default function ResultsPage() {
   const [searchParams] = useSearchParams();
   const statsParam = searchParams.get("stats");
   const filterMin = searchParams.get("filterMin");
+  const filtersParam = searchParams.get("filters");
   const statList = statsParam ? statsParam.split(",") : [];
+  const activeFilters = filtersParam
+    ? JSON.parse(decodeURIComponent(filtersParam))
+    : [];
 
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +28,9 @@ export default function ResultsPage() {
       setLoading(true);
       setError("");
       try {
-        const res = await authFetch(`/api/players?stats=${statsParam}&filterMin=${filterMin}`);
+        const res = await authFetch(
+          `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}`
+        );
         const data = await res.json();
         if (!res.ok) { setError(data.error || "Failed to fetch players"); return; }
         setResults(data.results);
@@ -35,7 +41,7 @@ export default function ResultsPage() {
       }
     }
     fetchPlayers();
-  }, [statsParam, filterMin]);
+  }, [statsParam, filterMin, filtersParam]);
 
   async function handleSave(player) {
     setSaving(player.id);
@@ -56,12 +62,25 @@ export default function ResultsPage() {
 
   const displayed = showAll ? results : results.slice(0, 100);
 
+  const filterSummary = [
+    filterMin === "true" ? "Min% ≥ 15%" : null,
+    ...activeFilters
+      .filter((f) => f.value !== "")
+      .map((f) => `${f.stat} ${f.type === "min" ? "≥" : "≤"} ${f.value}`),
+  ].filter(Boolean);
+
   return (
     <>
       <Header />
       <main className="container">
         <Link to="/" className="back-link">← Back to Search</Link>
         <h1 className="page-title">Top Players: {statList.join(" + ")}</h1>
+
+        {filterSummary.length > 0 && (
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
+            <strong>Active filters:</strong> {filterSummary.join(", ")}
+          </p>
+        )}
 
         {loading && <p className="status-msg">⏳ Loading players…</p>}
         {error && <p className="status-msg error">⚠️ {error}</p>}
@@ -93,7 +112,7 @@ export default function ResultsPage() {
                           onClick={() => setModalPlayerId(player.id)}
                           style={{
                             background: "none", border: "none", padding: 0,
-                            color: "var(--primary-color)", fontWeight: 600,
+                            color: "var(--primary)", fontWeight: 600,
                             cursor: "pointer", textDecoration: "underline",
                             fontSize: "inherit", textAlign: "left",
                           }}
