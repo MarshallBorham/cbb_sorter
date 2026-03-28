@@ -31,7 +31,7 @@ function calcPercentiles(stat, pool) {
 }
 
 playerRouter.get("/", requireAuth, async (req, res) => {
-  const { stats, filterMin, filters } = req.query;
+  const { stats, filterMin, filters, classes } = req.query;
 
   if (!stats) {
     return res.status(400).json({ error: "stats query param is required" });
@@ -68,6 +68,14 @@ playerRouter.get("/", requireAuth, async (req, res) => {
     const val = parseFloat(f.value);
     if (isNaN(val)) continue;
     query[`stats.${f.stat}`] = f.type === "min" ? { $gte: val } : { $lte: val };
+  }
+
+  // Class filter
+  if (classes) {
+    const classList = classes.split(",").map((c) => c.trim()).filter(Boolean);
+    if (classList.length > 0) {
+      query["year"] = { $in: classList };
+    }
   }
 
   try {

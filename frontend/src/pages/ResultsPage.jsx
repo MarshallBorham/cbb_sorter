@@ -18,6 +18,7 @@ export default function ResultsPage() {
   const statsParam = searchParams.get("stats");
   const filterMin = searchParams.get("filterMin");
   const filtersParam = searchParams.get("filters");
+  const classesParam = searchParams.get("classes");
   const statList = statsParam ? statsParam.split(",") : [];
   const activeFilters = filtersParam ? JSON.parse(decodeURIComponent(filtersParam)) : [];
 
@@ -35,7 +36,7 @@ export default function ResultsPage() {
       setError("");
       try {
         const res = await authFetch(
-          `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}`
+          `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam ? `&classes=${classesParam}` : ""}`
         );
         const data = await res.json();
         if (!res.ok) { setError(data.error || "Failed to fetch players"); return; }
@@ -47,7 +48,7 @@ export default function ResultsPage() {
       }
     }
     fetchPlayers();
-  }, [statsParam, filterMin, filtersParam]);
+  }, [statsParam, filterMin, filtersParam, classesParam]);
 
   async function handleSave(player) {
     setSaving(player.id);
@@ -70,6 +71,7 @@ export default function ResultsPage() {
 
   const filterSummary = [
     filterMin === "true" ? "Min% ≥ 15%" : null,
+    classesParam ? `Class: ${classesParam}` : null,
     ...activeFilters
       .filter((f) => f.value !== "")
       .map((f) => `${f.stat} ${f.type === "min" ? "≥" : "≤"} ${f.value}`),

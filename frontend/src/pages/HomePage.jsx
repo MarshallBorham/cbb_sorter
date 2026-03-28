@@ -43,6 +43,8 @@ const STATS = [
   { value: "3P100",     label: "3P/100" },
 ];
 
+const ALL_CLASSES = ["Fr", "So", "Jr", "Sr"];
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { authFetch } = useAuth();
@@ -52,6 +54,7 @@ export default function HomePage() {
   const [advancedFilters, setAdvancedFilters] = useState([
     { stat: "G", type: "min", value: "" },
   ]);
+  const [selectedClasses, setSelectedClasses] = useState(["Fr", "So", "Jr", "Sr"]);
   const [error, setError] = useState("");
   const [trending, setTrending] = useState([]);
 
@@ -99,11 +102,21 @@ export default function HomePage() {
     setAdvancedFilters(updated);
   }
 
+  function toggleClass(cls) {
+    setSelectedClasses((prev) =>
+      prev.includes(cls) ? prev.filter((c) => c !== cls) : [...prev, cls]
+    );
+  }
+
   function handleSearch(e) {
     e.preventDefault();
     const unique = new Set(selectedStats);
     if (unique.size !== selectedStats.length) {
       setError("Please select different stats for each slot.");
+      return;
+    }
+    if (selectedClasses.length === 0) {
+      setError("Please select at least one class.");
       return;
     }
     setError("");
@@ -113,12 +126,17 @@ export default function HomePage() {
       ? encodeURIComponent(JSON.stringify(activeFilters))
       : "";
 
+    const classesParam = selectedClasses.length < 4
+      ? `&classes=${selectedClasses.join(",")}`
+      : "";
+
     navigate(
-      `/results?stats=${selectedStats.join(",")}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}`
+      `/results?stats=${selectedStats.join(",")}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam}`
     );
   }
 
   const activeFilterCount = advancedFilters.filter((f) => f.value !== "").length;
+  const classesFiltered = selectedClasses.length < 4;
 
   return (
     <>
@@ -198,6 +216,47 @@ export default function HomePage() {
                 />
                 Only show players with Min% ≥ 15%
               </label>
+            </div>
+
+            {/* Class filter */}
+            <div style={{ marginBottom: "1rem" }}>
+              <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.5rem", textAlign: "left" }}>
+                Class
+                {classesFiltered && (
+                  <span style={{
+                    marginLeft: "0.5rem",
+                    background: "var(--primary)",
+                    color: "#fff",
+                    borderRadius: "999px",
+                    padding: "0.1rem 0.5rem",
+                    fontSize: "0.75rem",
+                  }}>
+                    filtered
+                  </span>
+                )}
+              </p>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                {ALL_CLASSES.map((cls) => (
+                  <button
+                    key={cls}
+                    type="button"
+                    onClick={() => toggleClass(cls)}
+                    style={{
+                      padding: "0.35rem 0.9rem",
+                      borderRadius: "999px",
+                      border: "1px solid var(--border)",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      background: selectedClasses.includes(cls) ? "var(--primary)" : "transparent",
+                      color: selectedClasses.includes(cls) ? "#fff" : "var(--text)",
+                      transition: "all 200ms ease",
+                    }}
+                  >
+                    {cls}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button
