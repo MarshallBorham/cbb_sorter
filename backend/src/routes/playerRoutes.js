@@ -101,7 +101,18 @@ playerRouter.get("/", requireAuth, async (req, res) => {
           combined,
         };
       })
-      .sort((a, b) => b.combined - a.combined);
+      .sort((a, b) => {
+        if (b.combined !== a.combined) return b.combined - a.combined;
+        const aRaw = statList.reduce((sum, s) => {
+          const val = a.statValues[s] ?? 0;
+          return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
+        }, 0);
+        const bRaw = statList.reduce((sum, s) => {
+          const val = b.statValues[s] ?? 0;
+          return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
+        }, 0);
+        return bRaw - aRaw;
+      });
 
     res.json({ statList, results: ranked });
   } catch (err) {
