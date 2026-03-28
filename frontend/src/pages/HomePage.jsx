@@ -152,7 +152,7 @@ export default function HomePage() {
                       ))}
                     </select>
                   </div>
-                  {selectedStats.length > 2 && (
+                  {selectedStats.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeStat(index)}

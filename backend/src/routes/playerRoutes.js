@@ -39,8 +39,8 @@ playerRouter.get("/", requireAuth, (req, res) => {
 
   const statList = stats.split(",").map((s) => s.trim());
 
-  if (statList.length < 2) {
-    return res.status(400).json({ error: "At least 2 stats are required" });
+  if (statList.length < 1) {
+    return res.status(400).json({ error: "At least 1 stat is required" });
   }
   for (const s of statList) {
     if (!validStats.includes(s)) {
