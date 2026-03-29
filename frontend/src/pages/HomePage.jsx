@@ -330,8 +330,8 @@ export default function HomePage() {
                         value={filter.type}
                         onChange={(e) => updateAdvancedFilter(index, "type", e.target.value)}
                       >
-                        <option value="min">Min ≥</option>
-                        <option value="max">Max ≤</option>
+                        <option value="min">≥</option>
+                        <option value="max">≤</option>
                       </select>
                     </div>
 
