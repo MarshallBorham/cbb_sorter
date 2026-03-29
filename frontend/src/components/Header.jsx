@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Header() {
-  const { username, logout } = useAuth();
+  const { username, isGuest, logout } = useAuth();
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("darkMode") === "true"
@@ -25,7 +25,9 @@ export default function Header() {
         <NavLink to="/" className="logo">🏀 Player Finder</NavLink>
         <nav className="nav" aria-label="Main navigation">
           <NavLink to="/" end className={({ isActive }) => isActive ? "active" : ""}>Search</NavLink>
-          <NavLink to="/watchlist" className={({ isActive }) => isActive ? "active" : ""}>Watchlist</NavLink>
+          {!isGuest && (
+            <NavLink to="/watchlist" className={({ isActive }) => isActive ? "active" : ""}>Watchlist</NavLink>
+          )}
           <label className="dark-toggle">
             <input
               type="checkbox"
@@ -35,10 +37,16 @@ export default function Header() {
             />
             Dark mode
           </label>
-          <span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-            Hi, {username}
-          </span>
-          <button className="btn-logout" onClick={handleLogout}>Logout</button>
+          {isGuest ? (
+            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>Guest</span>
+          ) : (
+            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+              Hi, {username}
+            </span>
+          )}
+          <button className="btn-logout" onClick={handleLogout}>
+            {isGuest ? "Sign In" : "Logout"}
+          </button>
         </nav>
       </div>
     </header>

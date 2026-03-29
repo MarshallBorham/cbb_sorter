@@ -11,6 +11,11 @@ function ProtectedRoute({ children }) {
   return isLoggedIn ? children : <Navigate to="/login" replace />;
 }
 
+function AuthOnlyRoute({ children }) {
+  const { token } = useAuth();
+  return token ? children : <Navigate to="/login" replace />;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -18,7 +23,7 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
       <Route path="/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
-      <Route path="/watchlist" element={<ProtectedRoute><WatchlistPage /></ProtectedRoute>} />
+      <Route path="/watchlist" element={<AuthOnlyRoute><WatchlistPage /></AuthOnlyRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

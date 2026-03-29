@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginAsGuest } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -14,21 +14,17 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.error || "Login failed");
         return;
       }
-
       login(data.token, data.username);
       navigate("/");
     } catch {
@@ -36,6 +32,11 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleGuest() {
+    loginAsGuest();
+    navigate("/");
   }
 
   return (
@@ -71,6 +72,23 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
+
+        <button
+          onClick={handleGuest}
+          style={{
+            marginTop: "0.75rem",
+            width: "100%",
+            padding: "0.6rem",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+            background: "none",
+            color: "var(--text-muted)",
+            cursor: "pointer",
+            fontSize: "0.95rem",
+          }}
+        >
+          Continue as Guest
+        </button>
 
         <p className="auth-link">
           Don't have an account? <Link to="/register">Register</Link>

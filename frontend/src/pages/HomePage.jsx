@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Header from "../components/Header.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
 
 const STATS = [
   { value: "G",         label: "Games Played" },
@@ -47,7 +46,6 @@ const ALL_CLASSES = ["Fr", "So", "Jr", "Sr"];
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { authFetch } = useAuth();
   const [selectedStats, setSelectedStats] = useState(["eFG", "ARate"]);
   const [filterMin, setFilterMin] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -61,7 +59,7 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchTrending() {
       try {
-        const res = await authFetch("/api/watchlist/trending");
+        const res = await fetch("/api/watchlist/trending");
         if (res.ok) {
           const data = await res.json();
           setTrending(data);
@@ -218,7 +216,6 @@ export default function HomePage() {
               </label>
             </div>
 
-            {/* Class filter */}
             <div style={{ marginBottom: "1rem" }}>
               <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.5rem", textAlign: "left" }}>
                 Class

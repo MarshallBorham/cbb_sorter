@@ -1,6 +1,5 @@
 import express from "express";
 import { Player } from "../models/Player.js";
-import { requireAuth } from "../middleware/auth.js";
 
 export const playerRouter = express.Router();
 
@@ -30,7 +29,7 @@ function calcPercentiles(stat, pool) {
   };
 }
 
-playerRouter.get("/", requireAuth, async (req, res) => {
+playerRouter.get("/", async (req, res) => {
   const { stats, filterMin, filters, classes, minHeight, maxHeight } = req.query;
 
   if (!stats) {
@@ -136,7 +135,7 @@ playerRouter.get("/", requireAuth, async (req, res) => {
   }
 });
 
-playerRouter.get("/:playerId", requireAuth, async (req, res) => {
+playerRouter.get("/:playerId", async (req, res) => {
   try {
     const player = await Player.findOne({ id: req.params.playerId }).lean();
     if (!player) return res.status(404).json({ error: "Player not found" });

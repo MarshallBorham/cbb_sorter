@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import Header from "../components/Header.jsx";
 import PlayerModal from "../components/PlayerModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -13,7 +13,8 @@ function formatVal(stat, val) {
 }
 
 export default function ResultsPage() {
-  const { authFetch } = useAuth();
+  const { authFetch, isGuest } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const statsParam = searchParams.get("stats");
   const filterMin = searchParams.get("filterMin");
@@ -35,7 +36,7 @@ export default function ResultsPage() {
       setLoading(true);
       setError("");
       try {
-        const res = await authFetch(
+        const res = await fetch(
           `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam ? `&classes=${classesParam}` : ""}`
         );
         const data = await res.json();
@@ -148,7 +149,15 @@ export default function ResultsPage() {
                       ))}
                       <td className="combined">{player.combined}</td>
                       <td>
-                        {saved.has(player.id) ? (
+                        {isGuest ? (
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => navigate("/login")}
+                            style={{ fontSize: "0.8rem", padding: "0.3rem 0.7rem" }}
+                          >
+                            Sign in
+                          </button>
+                        ) : saved.has(player.id) ? (
                           <button className="btn btn-saved" disabled>Saved ✓</button>
                         ) : (
                           <button

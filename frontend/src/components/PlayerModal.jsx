@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext.jsx";
 
 const STAT_LABELS = {
   G: "Games Played", Min: "Min %", ORTG: "Off. Rating", DRTG: "Def. Rating",
@@ -23,7 +22,6 @@ function formatVal(stat, val) {
 }
 
 export default function PlayerModal({ playerId, onClose }) {
-  const { authFetch } = useAuth();
   const [player, setPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,7 +29,7 @@ export default function PlayerModal({ playerId, onClose }) {
   useEffect(() => {
     async function load() {
       try {
-        const res = await authFetch(`/api/players/${playerId}`);
+        const res = await fetch(`/api/players/${playerId}`);
         const data = await res.json();
         if (!res.ok) { setError(data.error || "Failed to load player"); return; }
         setPlayer(data);
@@ -91,6 +89,7 @@ export default function PlayerModal({ playerId, onClose }) {
             <h2 style={{ marginBottom: "0.25rem" }}>{player.name}</h2>
             <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>
               {player.team} · {player.position} · {player.year}
+              {player.height && ` · ${player.height}`}
             </p>
 
             <div style={{

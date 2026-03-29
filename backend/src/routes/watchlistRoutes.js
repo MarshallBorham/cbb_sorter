@@ -5,7 +5,7 @@ import { requireAuth } from "../middleware/auth.js";
 
 export const watchlistRouter = express.Router();
 
-watchlistRouter.get("/trending", requireAuth, async (req, res) => {
+watchlistRouter.get("/trending", async (req, res) => {
   try {
     const allUsers = await User.find({}, "watchlist");
 
