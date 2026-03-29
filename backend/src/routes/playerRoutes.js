@@ -71,15 +71,17 @@ playerRouter.get("/", requireAuth, async (req, res) => {
   }
   if (classes) {
     const classList = classes.split(",").map((c) => c.trim()).filter(Boolean);
-    if (classList.length > 0) query["year"] = { $in: classList };
+    if (classList.length > 0) {
+      query["year"] = { $in: classList };
+    }
   }
   if (minHeight) {
-    const min = parseInt(minHeight);
-    if (!isNaN(min)) query["heightInches"] = { ...query["heightInches"], $gte: min };
+    const val = parseInt(minHeight);
+    if (!isNaN(val)) query["heightInches"] = { ...query["heightInches"], $gte: val };
   }
   if (maxHeight) {
-    const max = parseInt(maxHeight);
-    if (!isNaN(max)) query["heightInches"] = { ...query["heightInches"], $lte: max };
+    const val = parseInt(maxHeight);
+    if (!isNaN(val)) query["heightInches"] = { ...query["heightInches"], $lte: val };
   }
 
   try {
@@ -130,4 +132,16 @@ playerRouter.get("/", requireAuth, async (req, res) => {
     res.json({ statList, results: ranked });
   } catch (err) {
     console.error("Player search error:", err);
-    res.status(50
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+playerRouter.get("/:playerId", requireAuth, async (req, res) => {
+  try {
+    const player = await Player.findOne({ id: req.params.playerId }).lean();
+    if (!player) return res.status(404).json({ error: "Player not found" });
+    res.json(player);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
