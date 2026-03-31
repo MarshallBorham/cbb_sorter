@@ -241,7 +241,13 @@ export async function startBot() {
         if (filterMin) query["stats.Min"] = { $gte: 15 };
         if (portalOnly) query["inPortal"] = true;
         if (classFilter) {
-          const classList = classFilter.split(",").map(c => c.trim()).filter(Boolean);
+          const classMap = { fr: "Fr", so: "So", jr: "Jr", sr: "Sr" };
+          const classList = classFilter.split(",")
+            .map(c => {
+              const lower = c.trim().toLowerCase();
+              return classMap[lower] || c.trim();
+            })
+            .filter(Boolean);
           if (classList.length > 0) query["year"] = { $in: classList };
         }
 
@@ -291,7 +297,7 @@ export async function startBot() {
 
         const description = ranked.map((p, i) =>
           `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
-          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th)`).join(" · ") +
+          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th %)`).join(" · ") +
           ` · Combined: **${p.combined}**`
         ).join("\n\n");
 
@@ -356,7 +362,7 @@ export async function startBot() {
             const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
             const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
             if (val !== undefined && pct !== undefined) {
-              return `${s}: ${formatVal(s, val)} (${pct}th)`;
+              return `${s}: ${formatVal(s, val)} (${pct}th %)`;
             }
             return s;
           }).join(", ");
@@ -417,7 +423,7 @@ export async function startBot() {
         });
 
         const statStr = statList.map(s =>
-          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th)`
+          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th %)`
         ).join(", ");
 
         await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
