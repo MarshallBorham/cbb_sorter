@@ -88,6 +88,12 @@ const commands = [
         .setDescription("Third stat to search by")
         .setRequired(false)
         .setAutocomplete(true))
+    .addIntegerOption(opt =>
+      opt.setName("limit")
+        .setDescription("Number of results to show (default: 10, max: 25)")
+        .setRequired(false)
+        .setMinValue(1)
+        .setMaxValue(25))
     .addBooleanOption(opt =>
       opt.setName("portal_only")
         .setDescription("Only show players in the transfer portal")
@@ -170,7 +176,6 @@ export async function startBot() {
   });
 
   client.on("interactionCreate", async (interaction) => {
-    // Handle autocomplete
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused().toLowerCase();
       const filtered = VALID_STATS
@@ -180,7 +185,6 @@ export async function startBot() {
         )
         .slice(0, 25)
         .map(s => ({ name: `${s.name} (${s.value})`, value: s.value }));
-
       await interaction.respond(filtered);
       return;
     }
@@ -191,11 +195,12 @@ export async function startBot() {
 
     try {
       if (commandName === "search") {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         const stat1 = interaction.options.getString("stat1");
         const stat2 = interaction.options.getString("stat2");
         const stat3 = interaction.options.getString("stat3");
+        const limit = interaction.options.getInteger("limit") ?? 10;
         const portalOnly = interaction.options.getBoolean("portal_only") ?? false;
         const filterMin = interaction.options.getBoolean("filter_min") ?? true;
 
@@ -229,25 +234,27 @@ export async function startBot() {
             combined += pct;
           }
           return { id: p.id, name: p.name, team: p.team, year: p.year, statValues, statPcts, combined };
-        }).sort((a, b) => b.combined - a.combined).slice(0, 10);
+        })
+          .sort((a, b) => b.combined - a.combined)
+          .slice(0, limit);
 
         const embed = new EmbedBuilder()
           .setTitle(`🏀 Top Players: ${statList.join(" + ")}`)
           .setColor(0x0052cc)
           .setDescription(
             ranked.map((p, i) =>
-              `**${i + 1}. ${p.name}** — ${p.team} · ${p.year}\n` +
+              `**${i + 1}. ${p.name} — ${p.team}**\n· ${p.year} ` +
               statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th)`).join(" · ") +
               ` · Combined: **${p.combined}**`
             ).join("\n\n")
           )
-          .setFooter({ text: `Top 10 · Min%${filterMin ? " ≥15%" : " unfiltered"}${portalOnly ? " · Portal only" : ""}` });
+          .setFooter({ text: `Top ${limit} · Min%${filterMin ? " ≥15%" : " unfiltered"}${portalOnly ? " · Portal only" : ""}` });
 
         await interaction.editReply({ embeds: [embed] });
       }
 
       else if (commandName === "player") {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         const name = interaction.options.getString("name");
         const player = await Player.findOne({
@@ -298,7 +305,7 @@ export async function startBot() {
           .setColor(0x0052cc)
           .setDescription(
             entries.map((e, i) =>
-              `**${i + 1}. ${e.playerName}** — ${e.playerTeam}\nStats: ${e.stats.join(", ")}`
+              `**${i + 1}. ${e.playerName} — ${e.playerTeam}**\nStats: ${e.stats.join(", ")}`
             ).join("\n\n")
           );
 
@@ -370,7 +377,7 @@ export async function startBot() {
       }
 
       else if (commandName === "trending") {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         const allUsers = await User.find({}, "watchlist").lean();
         const counts = {};
@@ -399,7 +406,7 @@ export async function startBot() {
           .setTitle("🔥 Most Saved Players")
           .setColor(0xff6b35)
           .setDescription(
-            valid.map((p, i) => `**${i + 1}. ${p.name}** — ${p.team}`).join("\n")
+            valid.map((p, i) => `**${i + 1}. ${p.name} — ${p.team}**`).join("\n")
           );
 
         await interaction.editReply({ embeds: [embed] });
