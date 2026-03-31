@@ -83,14 +83,18 @@ function addStatOptions(builder, count, required = false) {
 
 const searchCommand = new SlashCommandBuilder()
   .setName("search")
-  .setDescription("Find top players by stat percentile");
-searchCommand
+  .setDescription("Find top players by stat percentile")
+  .addStringOption(opt =>
+    opt.setName("stat1")
+      .setDescription("First stat to search by")
+      .setRequired(true)
+      .setAutocomplete(true))
   .addIntegerOption(opt =>
     opt.setName("limit")
-      .setDescription("Number of results to show (default: 10, min: 1, max: 1000)")
+      .setDescription("Number of results to show (default: 10, max: 25)")
       .setRequired(false)
       .setMinValue(1)
-      .setMaxValue(1000))
+      .setMaxValue(25))
   .addBooleanOption(opt =>
     opt.setName("portal_only")
       .setDescription("Only show players in the transfer portal")
@@ -98,8 +102,32 @@ searchCommand
   .addBooleanOption(opt =>
     opt.setName("filter_min")
       .setDescription("Only show players with Min% >= 15% (default: true)")
-      .setRequired(false));
-addStatOptions(searchCommand, 15, true);
+      .setRequired(false))
+  .addStringOption(opt =>
+    opt.setName("stat2")
+      .setDescription("Second stat")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat3")
+      .setDescription("Stat 3")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat4")
+      .setDescription("Stat 4")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat5")
+      .setDescription("Stat 5")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat6")
+      .setDescription("Stat 6")
+      .setRequired(false)
+      .setAutocomplete(true));
 
 const saveCommand = new SlashCommandBuilder()
   .setName("save")
@@ -108,7 +136,7 @@ const saveCommand = new SlashCommandBuilder()
     opt.setName("name")
       .setDescription("Player name")
       .setRequired(true));
-addStatOptions(saveCommand, 15, true);
+addStatOptions(saveCommand, 6, true);
 
 const commands = [
   searchCommand,
