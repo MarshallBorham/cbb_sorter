@@ -69,19 +69,74 @@ try {
 
 console.log(`Total portal players fetched: ${allPlayers.length}`);
 
+// Levenshtein edit distance
+function editDistance(a, b) {
+  a = a.toLowerCase();
+  b = b.toLowerCase();
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+// Normalize name — remove punctuation, lowercase, collapse spaces
+function normalizeName(name) {
+  return name.toLowerCase().replace(/[^a-z\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+// Load all players into memory for fuzzy matching
+const allDbPlayers = await Player.find({}, "name team _id").lean();
+console.log(`Loaded ${allDbPlayers.length} players from database`);
+
 await Player.updateMany({}, { inPortal: false });
 console.log("Reset all inPortal flags");
 
 let matched = 0;
+let fuzzyMatched = 0;
 let unmatched = 0;
+const unmatchedNames = [];
 
 for (const p of allPlayers) {
   const fullName = `${p.playerFirstName} ${p.playerLastName}`.trim();
   const school = p.fromSchoolName;
+  const normalizedPortalName = normalizeName(fullName);
 
+  // 1. Exact match — name + school
   let player = await Player.findOne({ name: fullName, team: school });
+
+  // 2. Exact match — name only
   if (!player) {
     player = await Player.findOne({ name: fullName });
+  }
+
+  // 3. Fuzzy match — find closest name in database
+  if (!player) {
+    let bestMatch = null;
+    let bestDistance = Infinity;
+
+    for (const dbPlayer of allDbPlayers) {
+      const normalizedDbName = normalizeName(dbPlayer.name);
+      const dist = editDistance(normalizedPortalName, normalizedDbName);
+
+      // Allow up to 2 edits — handles typos, missing periods, etc.
+      if (dist < bestDistance && dist <= 2) {
+        bestDistance = dist;
+        bestMatch = dbPlayer;
+      }
+    }
+
+    if (bestMatch) {
+      player = bestMatch;
+      fuzzyMatched++;
+      console.log(`Fuzzy match: "${fullName}" → "${bestMatch.name}" (dist: ${bestDistance})`);
+    }
   }
 
   if (player) {
@@ -89,9 +144,20 @@ for (const p of allPlayers) {
     matched++;
   } else {
     unmatched++;
+    unmatchedNames.push(`${fullName} (${school})`);
   }
 }
 
-console.log(`Matched: ${matched}, Unmatched: ${unmatched}`);
+console.log(`\nResults:`);
+console.log(`  Exact matched: ${matched - fuzzyMatched}`);
+console.log(`  Fuzzy matched: ${fuzzyMatched}`);
+console.log(`  Unmatched: ${unmatched}`);
+console.log(`  Total matched: ${matched}`);
+
+if (unmatchedNames.length > 0) {
+  console.log(`\nUnmatched players:`);
+  unmatchedNames.forEach((n) => console.log(`  - ${n}`));
+}
+
 await mongoose.disconnect();
-console.log("Done");
+console.log("\nDone");
