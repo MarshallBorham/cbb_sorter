@@ -8,6 +8,13 @@ const ALLOWED_GUILDS = new Set([
 ]);
 
 const VALID_STATS = [
+  { value: "PPG", name: "Points Per Game" },
+  { value: "RPG", name: "Rebounds Per Game" },
+  { value: "APG", name: "Assists Per Game" },
+  { value: "BPM",      name: "BPM" },
+  { value: "OBPM",     name: "OBPM" },
+  { value: "DBPM",     name: "DBPM" },
+  { value: "3P100",    name: "3P/100" },
   { value: "eFG",      name: "Effective FG%" },
   { value: "TS",       name: "True Shooting %" },
   { value: "OR",       name: "Offensive Rebound %" },
@@ -41,10 +48,6 @@ const VALID_STATS = [
   { value: "DunksAtt", name: "Dunks Attempted" },
   { value: "DunksMade",name: "Dunks Made" },
   { value: "DunkPct",  name: "Dunk Make %" },
-  { value: "BPM",      name: "BPM" },
-  { value: "OBPM",     name: "OBPM" },
-  { value: "DBPM",     name: "DBPM" },
-  { value: "3P100",    name: "3P/100" },
 ];
 
 const VALID_STAT_VALUES = VALID_STATS.map(s => s.value);
@@ -335,7 +338,7 @@ export async function startBot() {
           return;
         }
 
-        const keyStats = ["Min", "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
+        const  keyStats = ["PPG", "RPG", "APG", "Min", "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
         const embed = new EmbedBuilder()
           .setTitle(`🏀 ${player.name}`)
           .setColor(0x0052cc)

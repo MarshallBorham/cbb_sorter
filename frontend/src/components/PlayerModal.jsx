@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const STAT_LABELS = {
+  PPG: "Points Per Game", RPG: "Rebounds Per Game", APG: "Assists Per Game",
   G: "Games Played", Min: "Min %", ORTG: "Off. Rating", DRTG: "Def. Rating",
   Usg: "Usage %", eFG: "eFG %", TS: "True Shooting %", OR: "Off. Reb %",
   DR: "Def. Reb %", ARate: "Assist Rate", TO: "Turnover %", Blk: "Block %",

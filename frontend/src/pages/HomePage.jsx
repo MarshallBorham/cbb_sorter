@@ -5,6 +5,9 @@ import Header from "../components/Header.jsx";
 const STATS = [
   { value: "G",         label: "Games Played" },
   { value: "Min",       label: "Minute %" },
+  { value: "PPG", label: "Points Per Game" },
+  { value: "RPG", label: "Rebounds Per Game" },
+  { value: "APG", label: "Assists Per Game" },
   { value: "ORTG",      label: "Offensive Rating" },
   { value: "DRTG",      label: "Defensive Rating" },
   { value: "Usg",       label: "Usage %" },
