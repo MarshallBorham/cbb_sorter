@@ -7,7 +7,6 @@ const MONGO_URI = getEnvVar("MONGODB_URI");
 await mongoose.connect(MONGO_URI);
 console.log("Connected to MongoDB");
 
-// Fetch all portal players — paginate through all pages
 let allPlayers = [];
 let page = 0;
 const pageSize = 200;
@@ -15,7 +14,13 @@ const pageSize = 200;
 while (true) {
   const res = await fetch("https://verbalcommits.com/api/vc/players/find/transfers", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Referer": "https://verbalcommits.com/transfers",
+      "Origin": "https://verbalcommits.com",
+    },
     body: JSON.stringify({
       name: "",
       queryTarget: "TRANSFER",
@@ -30,7 +35,18 @@ while (true) {
     }),
   });
 
-  const data = await res.json();
+  const text = await res.text();
+  console.log("Status:", res.status);
+  console.log("Response preview:", text.slice(0, 200));
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error("Failed to parse JSON — got HTML response, likely blocked");
+    break;
+  }
+
   if (!Array.isArray(data) || data.length === 0) break;
   allPlayers = allPlayers.concat(data);
   console.log(`Fetched ${allPlayers.length} portal players so far...`);
@@ -40,11 +56,15 @@ while (true) {
 
 console.log(`Total portal players fetched: ${allPlayers.length}`);
 
-// Reset all inPortal flags first
+if (allPlayers.length === 0) {
+  console.log("No players fetched — exiting without updating database");
+  await mongoose.disconnect();
+  process.exit(1);
+}
+
 await Player.updateMany({}, { inPortal: false });
 console.log("Reset all inPortal flags");
 
-// Match and mark
 let matched = 0;
 let unmatched = 0;
 
@@ -52,13 +72,7 @@ for (const p of allPlayers) {
   const fullName = `${p.playerFirstName} ${p.playerLastName}`.trim();
   const school = p.fromSchoolName;
 
-  // Try exact name + school match first
-  let player = await Player.findOne({
-    name: fullName,
-    team: school,
-  });
-
-  // Fall back to name only
+  let player = await Player.findOne({ name: fullName, team: school });
   if (!player) {
     player = await Player.findOne({ name: fullName });
   }
