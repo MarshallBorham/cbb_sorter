@@ -6,9 +6,10 @@ const botWatchlistSchema = new mongoose.Schema({
   playerName: { type: String, required: true },
   playerTeam: { type: String },
   stats: { type: [String], required: true },
+  statValues: { type: Map, of: Number },
+  statPcts: { type: Map, of: Number },
   addedAt: { type: Date, default: Date.now },
 });
 
 botWatchlistSchema.index({ discordUserId: 1 });
-
 export const BotWatchlist = mongoose.model("BotWatchlist", botWatchlistSchema);

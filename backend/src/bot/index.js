@@ -69,40 +69,49 @@ function formatVal(stat, val) {
   return val.toFixed(1);
 }
 
-const commands = [
-  new SlashCommandBuilder()
-    .setName("search")
-    .setDescription("Find top players by stat percentile")
-    .addStringOption(opt =>
-      opt.setName("stat1")
-        .setDescription("First stat to search by")
-        .setRequired(true)
-        .setAutocomplete(true))
-    .addStringOption(opt =>
-      opt.setName("stat2")
-        .setDescription("Second stat to search by")
-        .setRequired(false)
-        .setAutocomplete(true))
-    .addStringOption(opt =>
-      opt.setName("stat3")
-        .setDescription("Third stat to search by")
-        .setRequired(false)
-        .setAutocomplete(true))
-    .addIntegerOption(opt =>
-      opt.setName("limit")
-        .setDescription("Number of results to show (default: 10, max: 25)")
-        .setRequired(false)
-        .setMinValue(1)
-        .setMaxValue(25))
-    .addBooleanOption(opt =>
-      opt.setName("portal_only")
-        .setDescription("Only show players in the transfer portal")
-        .setRequired(false))
-    .addBooleanOption(opt =>
-      opt.setName("filter_min")
-        .setDescription("Only show players with Min% >= 15% (default: true)")
-        .setRequired(false)),
+// Build stat options for a command (up to 6)
+function addStatOptions(builder, count, required = false) {
+  for (let i = 1; i <= count; i++) {
+    builder.addStringOption(opt =>
+      opt.setName(`stat${i}`)
+        .setDescription(i === 1 ? "First stat" : i === 2 ? "Second stat" : `Stat ${i}`)
+        .setRequired(i === 1 ? required : false)
+        .setAutocomplete(true));
+  }
+  return builder;
+}
 
+const searchCommand = new SlashCommandBuilder()
+  .setName("search")
+  .setDescription("Find top players by stat percentile");
+addStatOptions(searchCommand, 37, true);
+searchCommand
+  .addIntegerOption(opt =>
+    opt.setName("limit")
+      .setDescription("Number of results to show (default: 10, min: 1, max: 1000)")
+      .setRequired(false)
+      .setMinValue(1)
+      .setMaxValue(1000))
+  .addBooleanOption(opt =>
+    opt.setName("portal_only")
+      .setDescription("Only show players in the transfer portal")
+      .setRequired(false))
+  .addBooleanOption(opt =>
+    opt.setName("filter_min")
+      .setDescription("Only show players with Min% >= 15% (default: true)")
+      .setRequired(false));
+
+const saveCommand = new SlashCommandBuilder()
+  .setName("save")
+  .setDescription("Save a player to your watchlist")
+  .addStringOption(opt =>
+    opt.setName("name")
+      .setDescription("Player name")
+      .setRequired(true));
+addStatOptions(saveCommand, 6, true);
+
+const commands = [
+  searchCommand,
   new SlashCommandBuilder()
     .setName("player")
     .setDescription("Show full stats for a player")
@@ -110,34 +119,10 @@ const commands = [
       opt.setName("name")
         .setDescription("Player name")
         .setRequired(true)),
-
   new SlashCommandBuilder()
     .setName("watchlist")
     .setDescription("View your saved players"),
-
-  new SlashCommandBuilder()
-    .setName("save")
-    .setDescription("Save a player to your watchlist")
-    .addStringOption(opt =>
-      opt.setName("name")
-        .setDescription("Player name")
-        .setRequired(true))
-    .addStringOption(opt =>
-      opt.setName("stat1")
-        .setDescription("First stat")
-        .setRequired(true)
-        .setAutocomplete(true))
-    .addStringOption(opt =>
-      opt.setName("stat2")
-        .setDescription("Second stat")
-        .setRequired(false)
-        .setAutocomplete(true))
-    .addStringOption(opt =>
-      opt.setName("stat3")
-        .setDescription("Third stat")
-        .setRequired(false)
-        .setAutocomplete(true)),
-
+  saveCommand,
   new SlashCommandBuilder()
     .setName("remove")
     .setDescription("Remove a player from your watchlist")
@@ -145,15 +130,22 @@ const commands = [
       opt.setName("name")
         .setDescription("Player name")
         .setRequired(true)),
-
   new SlashCommandBuilder()
     .setName("trending")
     .setDescription("Show the most saved players site-wide"),
-
   new SlashCommandBuilder()
     .setName("stats")
     .setDescription("List all available stats"),
 ];
+
+function getStatList(interaction, count = 6) {
+  const stats = [];
+  for (let i = 1; i <= count; i++) {
+    const s = interaction.options.getString(`stat${i}`);
+    if (s) stats.push(s);
+  }
+  return stats;
+}
 
 export async function startBot() {
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -168,7 +160,7 @@ export async function startBot() {
     console.log(`Discord bot logged in as ${client.user.tag}`);
     const rest = new REST({ version: "10" }).setToken(token);
     try {
-      await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+      await rest.put(Routes.applicationCommands(client.user.id), { body: commands.map(c => c.toJSON()) });
       console.log("Slash commands registered globally");
     } catch (err) {
       console.error("Failed to register commands:", err);
@@ -197,14 +189,11 @@ export async function startBot() {
       if (commandName === "search") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-        const stat1 = interaction.options.getString("stat1");
-        const stat2 = interaction.options.getString("stat2");
-        const stat3 = interaction.options.getString("stat3");
+        const statList = getStatList(interaction);
         const limit = interaction.options.getInteger("limit") ?? 10;
         const portalOnly = interaction.options.getBoolean("portal_only") ?? false;
         const filterMin = interaction.options.getBoolean("filter_min") ?? true;
 
-        const statList = [stat1, stat2, stat3].filter(Boolean);
         const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
         if (invalid.length > 0) {
           await interaction.editReply(`❌ Invalid stats: ${invalid.join(", ")}`);
@@ -243,7 +232,7 @@ export async function startBot() {
           .setColor(0x0052cc)
           .setDescription(
             ranked.map((p, i) =>
-              `**${i + 1}. ${p.name} — ${p.team}**\n· ${p.year} ` +
+              `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
               statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th)`).join(" · ") +
               ` · Combined: **${p.combined}**`
             ).join("\n\n")
@@ -304,9 +293,17 @@ export async function startBot() {
           .setTitle(`📋 ${interaction.user.username}'s Watchlist`)
           .setColor(0x0052cc)
           .setDescription(
-            entries.map((e, i) =>
-              `**${i + 1}. ${e.playerName} — ${e.playerTeam}**\nStats: ${e.stats.join(", ")}`
-            ).join("\n\n")
+            entries.map((e, i) => {
+              const statStr = e.stats.map(s => {
+                const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
+                const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
+                if (val !== undefined && pct !== undefined) {
+                  return `${s}: ${formatVal(s, val)} (${pct}th)`;
+                }
+                return s;
+              }).join(", ");
+              return `**${i + 1}. ${e.playerName} — ${e.playerTeam}**\nStats: ${statStr}`;
+            }).join("\n\n")
           );
 
         await interaction.editReply({ embeds: [embed] });
@@ -316,10 +313,7 @@ export async function startBot() {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const name = interaction.options.getString("name");
-        const stat1 = interaction.options.getString("stat1");
-        const stat2 = interaction.options.getString("stat2");
-        const stat3 = interaction.options.getString("stat3");
-        const statList = [stat1, stat2, stat3].filter(Boolean);
+        const statList = getStatList(interaction);
 
         const player = await Player.findOne({
           name: { $regex: name, $options: "i" }
@@ -340,15 +334,32 @@ export async function startBot() {
           return;
         }
 
+        // Calculate percentiles for the saved stats
+        const pool = await Player.find({ "stats.Min": { $gte: 15 } }).lean();
+        const statValues = {};
+        const statPcts = {};
+        for (const s of statList) {
+          const val = player.stats[s] ?? 0;
+          const getPct = calcPercentiles(s, pool);
+          statValues[s] = val;
+          statPcts[s] = getPct(val);
+        }
+
         await BotWatchlist.create({
           discordUserId: interaction.user.id,
           playerId: player.id,
           playerName: player.name,
           playerTeam: player.team,
           stats: statList,
+          statValues,
+          statPcts,
         });
 
-        await interaction.editReply(`✅ Saved **${player.name}** (${player.team}) to your watchlist.`);
+        const statStr = statList.map(s =>
+          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th)`
+        ).join(", ");
+
+        await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
       }
 
       else if (commandName === "remove") {
