@@ -69,7 +69,6 @@ try {
 
 console.log(`Total portal players fetched: ${allPlayers.length}`);
 
-// Levenshtein edit distance
 function editDistance(a, b) {
   a = a.toLowerCase();
   b = b.toLowerCase();
@@ -86,12 +85,10 @@ function editDistance(a, b) {
   return dp[a.length][b.length];
 }
 
-// Normalize name — remove punctuation, lowercase, collapse spaces
 function normalizeName(name) {
   return name.toLowerCase().replace(/[^a-z\s]/g, "").replace(/\s+/g, " ").trim();
 }
 
-// Load all players into memory for fuzzy matching
 const allDbPlayers = await Player.find({}, "name team _id").lean();
 console.log(`Loaded ${allDbPlayers.length} players from database`);
 
@@ -106,7 +103,6 @@ const unmatchedNames = [];
 for (const p of allPlayers) {
   const fullName = `${p.playerFirstName} ${p.playerLastName}`.trim();
   const school = p.fromSchoolName;
-  const normalizedPortalName = normalizeName(fullName);
 
   // 1. Exact match — name + school
   let player = await Player.findOne({ name: fullName, team: school });
@@ -116,18 +112,26 @@ for (const p of allPlayers) {
     player = await Player.findOne({ name: fullName });
   }
 
-  // 3. Fuzzy match — find closest name in database
+  // 3. Fuzzy match — same first initial, fuzzy last name
   if (!player) {
     let bestMatch = null;
     let bestDistance = Infinity;
 
-    for (const dbPlayer of allDbPlayers) {
-      const normalizedDbName = normalizeName(dbPlayer.name);
-      const dist = editDistance(normalizedPortalName, normalizedDbName);
+    const portalFirst = normalizeName(p.playerFirstName || "");
+    const portalLast = normalizeName(p.playerLastName || "");
 
-      // Allow up to 2 edits — handles typos, missing periods, etc.
-      if (dist < bestDistance && dist <= 2) {
-        bestDistance = dist;
+    for (const dbPlayer of allDbPlayers) {
+      const parts = dbPlayer.name.split(" ");
+      const dbFirst = normalizeName(parts[0] || "");
+      const dbLast = normalizeName(parts.slice(1).join(" ") || "");
+
+      // First name must start with same letter
+      if (!portalFirst || !dbFirst || portalFirst[0] !== dbFirst[0]) continue;
+
+      // Fuzzy match on last name only
+      const lastDist = editDistance(portalLast, dbLast);
+      if (lastDist < bestDistance && lastDist <= 2) {
+        bestDistance = lastDist;
         bestMatch = dbPlayer;
       }
     }
