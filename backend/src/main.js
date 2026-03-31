@@ -7,13 +7,13 @@ import { getEnvVar } from "./getEnvVar.js";
 import { authRouter } from "./routes/authRoutes.js";
 import { playerRouter } from "./routes/playerRoutes.js";
 import { watchlistRouter } from "./routes/watchlistRoutes.js";
+import { startBot } from "./bot/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number.parseInt(getEnvVar("PORT", false), 10) || 3000;
 const MONGO_URI = getEnvVar("MONGODB_URI");
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
@@ -33,6 +33,7 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Server running at http://localhost:${PORT}. CTRL+C to stop.`);
     });
+    startBot();
   })
   .catch((err) => {
     console.error("MongoDB connection failed:", err.message);
