@@ -4,7 +4,7 @@ import { Player } from "../models/Player.js";
 export const playerRouter = express.Router();
 
 const validStats = [
-  "eFG", "TS", "OR", "DR", "ARate", "TO", "Blk", "Stl", "FTRate", "FT",
+  "PPG", "RPG", "APG", "eFG", "TS", "OR", "DR", "ARate", "TO", "Blk", "Stl", "FTRate", "FT",
   "2P", "3P", "Min", "G", "ORTG", "DRTG", "Usg",
   "FTA", "FTM", "2PM", "2PA", "3PM", "3PA",
   "FC40", "Close2PM", "Close2PA", "Close2P",
