@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, MessageFlags } from "discord.js";
 import { Player } from "../models/Player.js";
 import { User } from "../models/User.js";
 import { BotWatchlist } from "../models/BotWatchlist.js";
@@ -195,7 +195,7 @@ export async function startBot() {
 
     try {
       if (commandName === "search") {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const stat1 = interaction.options.getString("stat1");
         const stat2 = interaction.options.getString("stat2");
@@ -254,7 +254,7 @@ export async function startBot() {
       }
 
       else if (commandName === "player") {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const name = interaction.options.getString("name");
         const player = await Player.findOne({
@@ -289,7 +289,7 @@ export async function startBot() {
       }
 
       else if (commandName === "watchlist") {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const entries = await BotWatchlist.find({
           discordUserId: interaction.user.id
@@ -313,7 +313,7 @@ export async function startBot() {
       }
 
       else if (commandName === "save") {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const name = interaction.options.getString("name");
         const stat1 = interaction.options.getString("stat1");
@@ -352,7 +352,7 @@ export async function startBot() {
       }
 
       else if (commandName === "remove") {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const name = interaction.options.getString("name");
         const player = await Player.findOne({
@@ -377,7 +377,7 @@ export async function startBot() {
       }
 
       else if (commandName === "trending") {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const allUsers = await User.find({}, "watchlist").lean();
         const counts = {};
@@ -418,7 +418,7 @@ export async function startBot() {
           .setColor(0x0052cc)
           .setDescription(VALID_STATS.map(s => `**${s.value}** — ${s.name}`).join("\n"));
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ flags: MessageFlags.Ephemeral, embeds: [embed] });
       }
 
     } catch (err) {
@@ -427,7 +427,7 @@ export async function startBot() {
       if (interaction.deferred) {
         await interaction.editReply(msg);
       } else {
-        await interaction.reply({ content: msg, ephemeral: true });
+        await interaction.reply({ flags: MessageFlags.Ephemeral, content: msg });
       }
     }
   });
