@@ -4,7 +4,7 @@ import { User } from "../models/User.js";
 import { BotWatchlist } from "../models/BotWatchlist.js";
 
 const ALLOWED_GUILDS = new Set([
-  // Add your server IDs here e.g. "123456789012345678"
+  "123456789012345678"
 ]);
 
 const VALID_STATS = [
@@ -309,7 +309,7 @@ export async function startBot() {
 
         const description = ranked.map((p, i) =>
           `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
-          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th)`).join(" · ") +
+          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th %)`).join(" · ") +
           ` · Combined: **${p.combined}**`
         ).join("\n\n");
 
@@ -374,7 +374,7 @@ export async function startBot() {
             const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
             const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
             if (val !== undefined && pct !== undefined) {
-              return `${s}: ${formatVal(s, val)} (${pct}th)`;
+              return `${s}: ${formatVal(s, val)} (${pct}th %)`;
             }
             return s;
           }).join(", ");
@@ -435,7 +435,7 @@ export async function startBot() {
         });
 
         const statStr = statList.map(s =>
-          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th)`
+          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th %)`
         ).join(", ");
 
         await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
