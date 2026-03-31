@@ -84,7 +84,6 @@ function addStatOptions(builder, count, required = false) {
 const searchCommand = new SlashCommandBuilder()
   .setName("search")
   .setDescription("Find top players by stat percentile");
-addStatOptions(searchCommand, 15, true);
 searchCommand
   .addIntegerOption(opt =>
     opt.setName("limit")
@@ -100,6 +99,7 @@ searchCommand
     opt.setName("filter_min")
       .setDescription("Only show players with Min% >= 15% (default: true)")
       .setRequired(false));
+addStatOptions(searchCommand, 15, true);
 
 const saveCommand = new SlashCommandBuilder()
   .setName("save")
