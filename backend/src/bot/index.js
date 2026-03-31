@@ -104,6 +104,10 @@ const searchCommand = new SlashCommandBuilder()
       .setDescription("Only show players with Min% >= 15% (default: true)")
       .setRequired(false))
   .addStringOption(opt =>
+    opt.setName("class")
+      .setDescription("Filter by class: Fr, So, Jr, Sr (comma separated e.g. Fr,So)")
+      .setRequired(false))
+  .addStringOption(opt =>
     opt.setName("stat2")
       .setDescription("Second stat")
       .setRequired(false)
@@ -221,6 +225,11 @@ export async function startBot() {
         const limit = interaction.options.getInteger("limit") ?? 10;
         const portalOnly = interaction.options.getBoolean("portal_only") ?? false;
         const filterMin = interaction.options.getBoolean("filter_min") ?? true;
+        const classFilter = interaction.options.getString("class");
+        if (classFilter) {
+          const classList = classFilter.split(",").map(c => c.trim()).filter(Boolean);
+          if (classList.length > 0) query["year"] = { $in: classList };
+        }
 
         const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
         if (invalid.length > 0) {
@@ -252,7 +261,18 @@ export async function startBot() {
           }
           return { id: p.id, name: p.name, team: p.team, year: p.year, statValues, statPcts, combined };
         })
-          .sort((a, b) => b.combined - a.combined)
+          .sort((a, b) => {
+            if (b.combined !== a.combined) return b.combined - a.combined;
+            const aRaw = statList.reduce((sum, s) => {
+              const val = a.statValues[s] ?? 0;
+              return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
+            }, 0);
+            const bRaw = statList.reduce((sum, s) => {
+              const val = b.statValues[s] ?? 0;
+              return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
+            }, 0);
+            return bRaw - aRaw;
+          })
           .slice(0, limit);
 
         const embed = new EmbedBuilder()
@@ -265,8 +285,7 @@ export async function startBot() {
               ` · Combined: **${p.combined}**`
             ).join("\n\n")
           )
-          .setFooter({ text: `Top ${limit} · Min%${filterMin ? " ≥15%" : " unfiltered"}${portalOnly ? " · Portal only" : ""}` });
-
+          .setFooter({ text: `Top ${limit} · Min%${filterMin ? " ≥15%" : " unfiltered"}${portalOnly ? " · Portal only" : ""}${classFilter ? ` · Class: ${classFilter}` : ""}` });
         await interaction.editReply({ embeds: [embed] });
       }
 
