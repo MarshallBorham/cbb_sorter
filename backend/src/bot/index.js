@@ -3,6 +3,10 @@ import { Player } from "../models/Player.js";
 import { User } from "../models/User.js";
 import { BotWatchlist } from "../models/BotWatchlist.js";
 
+const ALLOWED_GUILDS = new Set([
+  // Add your server IDs here e.g. "123456789012345678"
+]);
+
 const VALID_STATS = [
   { value: "eFG",      name: "Effective FG%" },
   { value: "TS",       name: "True Shooting %" },
@@ -199,6 +203,14 @@ export async function startBot() {
   });
 
   client.on("interactionCreate", async (interaction) => {
+    // Block unauthorized servers — null guildId means DM which is always allowed
+    if (interaction.guildId && ALLOWED_GUILDS.size > 0 && !ALLOWED_GUILDS.has(interaction.guildId)) {
+      if (interaction.isChatInputCommand()) {
+        await interaction.reply({ content: "This bot is not authorized in this server.", flags: MessageFlags.Ephemeral });
+      }
+      return;
+    }
+
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused().toLowerCase();
       const filtered = VALID_STATS
@@ -297,7 +309,7 @@ export async function startBot() {
 
         const description = ranked.map((p, i) =>
           `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
-          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th %)`).join(" · ") +
+          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th)`).join(" · ") +
           ` · Combined: **${p.combined}**`
         ).join("\n\n");
 
@@ -362,7 +374,7 @@ export async function startBot() {
             const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
             const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
             if (val !== undefined && pct !== undefined) {
-              return `${s}: ${formatVal(s, val)} (${pct}th %)`;
+              return `${s}: ${formatVal(s, val)} (${pct}th)`;
             }
             return s;
           }).join(", ");
@@ -423,7 +435,7 @@ export async function startBot() {
         });
 
         const statStr = statList.map(s =>
-          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th %)`
+          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th)`
         ).join(", ");
 
         await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
