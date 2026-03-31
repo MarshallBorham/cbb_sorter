@@ -91,10 +91,10 @@ const searchCommand = new SlashCommandBuilder()
       .setAutocomplete(true))
   .addIntegerOption(opt =>
     opt.setName("limit")
-      .setDescription("Number of results to show (default: 10, max: 500)")
+      .setDescription("Number of results to show (default: 10, max: 50)")
       .setRequired(false)
       .setMinValue(1)
-      .setMaxValue(500))
+      .setMaxValue(50))
   .addBooleanOption(opt =>
     opt.setName("portal_only")
       .setDescription("Only show players in the transfer portal")
