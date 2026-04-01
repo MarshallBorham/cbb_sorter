@@ -4,7 +4,8 @@ import { User } from "../models/User.js";
 import { BotWatchlist } from "../models/BotWatchlist.js";
 
 const ALLOWED_GUILDS = new Set([
-  "800261752540364840"
+  "800261752540364840",
+  "1488889811942248628"
 ]);
 
 const VALID_STATS = [
