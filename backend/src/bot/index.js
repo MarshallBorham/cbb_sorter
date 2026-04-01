@@ -339,28 +339,24 @@ export async function startBot() {
           return;
         }
 
-        const keyStats = ["Min", "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
-
+        const  keyStats = ["Min", "PPG", "RPG", "APG",  "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
         const embed = new EmbedBuilder()
-                      .setTitle(`🏀 ${player.name}`)
-                      .setColor(0x0052cc)
-                      .addFields(
-                          { name: "Team", value: player.team || "—", inline: true },
-                          { name: "Position", value: player.position || "—", inline: true },
-                          { name: "Year", value: player.year || "—", inline: true },
-                          { name: "Height", value: player.height || "—", inline: true },
-                          { name: "In Portal", value: player.inPortal ? "✅ Yes" : "No", inline: true },
-                          { name: "PPG", value: player.stats?.PPG != null ? player.stats.PPG.toFixed(1) : "—", inline: true },
-                          { name: "RPG", value: player.stats?.RPG != null ? player.stats.RPG.toFixed(1) : "—", inline: true },
-                          { name: "APG", value: player.stats?.APG != null ? player.stats.APG.toFixed(1) : "—", inline: true },
-                          {
-                              name: "Key Stats",
-                              value: keyStats
-                                 .filter(s => player.stats[s] !== undefined)
-                                 .map(s => `**${s}:** ${formatVal(s, player.stats[s] ?? 0)}`)
-                                 .join(" · ") || "No stats available",
-                          }
-                      );
+          .setTitle(`🏀 ${player.name}`)
+          .setColor(0x0052cc)
+          .addFields(
+            { name: "Team", value: player.team || "—", inline: true },
+            { name: "Position", value: player.position || "—", inline: true },
+            { name: "Year", value: player.year || "—", inline: true },
+            { name: "Height", value: player.height || "—", inline: true },
+            { name: "In Portal", value: player.inPortal ? "✅ Yes" : "No", inline: true },
+            {
+              name: "Key Stats",
+              value: keyStats
+                .filter(s => player.stats[s] !== undefined)
+                .map(s => `**${s}:** ${formatVal(s, player.stats[s] ?? 0)}`)
+                .join(" · ") || "No stats available",
+            }
+          );
 
         await interaction.editReply({ embeds: [embed] });
       }
