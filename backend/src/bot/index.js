@@ -5,7 +5,7 @@ import { BotWatchlist } from "../models/BotWatchlist.js";
 
 const ALLOWED_GUILDS = new Set([
   "800261752540364840",
-  "1181335653703749783"
+  "1488889811942248628"
 ]);
 
 const VALID_STATS = [
@@ -69,6 +69,12 @@ const COMPARE_STATS = [
   { key: "3PM",      label: "3PM" },
 ];
 
+function ordinal(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 function calcPercentiles(stat, pool) {
   const values = pool.map((p) => p.stats[stat] ?? 0).sort((a, b) => a - b);
   const total = values.length;
@@ -93,7 +99,7 @@ function formatVal(stat, val) {
 }
 
 function buildPlayerEmbed(player, sharedBy = null) {
-  const keyStats = ["PPG", "RPG", "APG", "Min", "ORTG", "DRTG", "eFG", "3P", "FT", "OR", "DR", "ARate", "TO", "Stl", "Blk", "BPM", "OBPM", "DBPM"];
+  const keyStats = ["PPG", "RPG", "APG", "Min", "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
 
   const embed = new EmbedBuilder()
     .setTitle(`🏀 ${player.name}`)
@@ -113,7 +119,7 @@ function buildPlayerEmbed(player, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}, visit cbb.up.railway.app` });
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
   return embed;
 }
 
@@ -171,7 +177,7 @@ async function runSearch(statList, limit, portalOnly, filterMin, classFilter) {
 function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, sharedBy = null) {
   const description = ranked.map((p, i) =>
     `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
-    statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th %)`).join(" · ") +
+    statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${ordinal(p.statPcts[s])} %)`).join(" · ") +
     ` · Combined: **${p.combined}**`
   ).join("\n\n");
 
@@ -225,8 +231,8 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null) {
     const pctA = valA != null ? percentileFns[key](valA) : null;
     const pctB = valB != null ? percentileFns[key](valB) : null;
 
-    const strA = valA != null ? `${formatVal(key, valA)} (${pctA}th %)` : "—";
-    const strB = valB != null ? `${formatVal(key, valB)} (${pctB}th %)` : "—";
+    const strA = valA != null ? `${formatVal(key, valA)} (${ordinal(pctA)} %)` : "—";
+    const strB = valB != null ? `${formatVal(key, valB)} (${ordinal(pctB)} %)` : "—";
 
     linesA.push(`${winner === "A" ? "✅ " : ""}**${label}:** ${strA}`);
     linesB.push(`${winner === "B" ? "✅ " : ""}**${label}:** ${strB}`);
@@ -262,7 +268,7 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}, visit cbb.up.railway.app` });
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
   return embed;
 }
 
@@ -287,7 +293,7 @@ const searchCommand = new SlashCommandBuilder()
       .setAutocomplete(true))
   .addIntegerOption(opt =>
     opt.setName("limit")
-      .setDescription("Number of results to show (default: 10, max: 49)")
+      .setDescription("Number of results to show (default: 10, max: 50)")
       .setRequired(false)
       .setMinValue(1)
       .setMaxValue(50))
@@ -573,7 +579,7 @@ export async function startBot() {
             const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
             const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
             if (val !== undefined && pct !== undefined) {
-              return `${s}: ${formatVal(s, val)} (${pct}th %)`;
+              return `${s}: ${formatVal(s, val)} (${ordinal(pct)} %)`;
             }
             return s;
           }).join(", ");
@@ -634,7 +640,7 @@ export async function startBot() {
         });
 
         const statStr = statList.map(s =>
-          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th %)`
+          `${s}: ${formatVal(s, statValues[s])} (${ordinal(statPcts[s])} %)`
         ).join(", ");
 
         await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
@@ -749,7 +755,7 @@ export async function startBot() {
             const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
             const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
             if (val !== undefined && pct !== undefined) {
-              return `${s}: ${formatVal(s, val)} (${pct}th %)`;
+              return `${s}: ${formatVal(s, val)} (${ordinal(pct)} %)`;
             }
             return s;
           }).join(", ");
