@@ -287,7 +287,7 @@ const searchCommand = new SlashCommandBuilder()
       .setAutocomplete(true))
   .addIntegerOption(opt =>
     opt.setName("limit")
-      .setDescription("Number of results to show (default: 10, max: 50)")
+      .setDescription("Number of results to show (default: 10, max: 49)")
       .setRequired(false)
       .setMinValue(1)
       .setMaxValue(50))
