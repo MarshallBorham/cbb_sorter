@@ -77,6 +77,31 @@ function formatVal(stat, val) {
   return val.toFixed(1);
 }
 
+function buildPlayerEmbed(player, sharedBy = null) {
+  const keyStats = ["PPG", "RPG", "APG", "Min", "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🏀 ${player.name}`)
+    .setColor(0x0052cc)
+    .addFields(
+      { name: "Team", value: player.team || "—", inline: true },
+      { name: "Position", value: player.position || "—", inline: true },
+      { name: "Year", value: player.year || "—", inline: true },
+      { name: "Height", value: player.height || "—", inline: true },
+      { name: "In Portal", value: player.inPortal ? "✅ Yes" : "No", inline: true },
+      {
+        name: "Key Stats",
+        value: keyStats
+          .filter(s => player.stats[s] !== undefined)
+          .map(s => `**${s}:** ${formatVal(s, player.stats[s] ?? 0)}`)
+          .join(" · ") || "No stats available",
+      }
+    );
+
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
+  return embed;
+}
+
 function addStatOptions(builder, count, required = false) {
   for (let i = 1; i <= count; i++) {
     builder.addStringOption(opt =>
@@ -149,49 +174,17 @@ const saveCommand = new SlashCommandBuilder()
       .setRequired(true));
 addStatOptions(saveCommand, 6, true);
 
-const shareCommand = new SlashCommandBuilder()
-  .setName("share")
-  .setDescription("Share publicly in the channel")
-  .addStringOption(opt =>
-    opt.setName("type")
-      .setDescription("What to share")
-      .setRequired(true)
-      .addChoices(
-        { name: "Player profile", value: "player" },
-        { name: "My watchlist (top 3)", value: "watchlist" },
-        { name: "Search results (top 5)", value: "search" },
-      ))
+const sharePlayerCommand = new SlashCommandBuilder()
+  .setName("shareplayer")
+  .setDescription("Share a player profile publicly in the channel")
   .addStringOption(opt =>
     opt.setName("name")
-      .setDescription("Player name (required for player type)")
-      .setRequired(false))
-  .addStringOption(opt =>
-    opt.setName("stat1")
-      .setDescription("First stat (required for search type)")
-      .setRequired(false)
-      .setAutocomplete(true))
-  .addStringOption(opt =>
-    opt.setName("stat2")
-      .setDescription("Second stat (for search type)")
-      .setRequired(false)
-      .setAutocomplete(true))
-  .addStringOption(opt =>
-    opt.setName("stat3")
-      .setDescription("Third stat (for search type)")
-      .setRequired(false)
-      .setAutocomplete(true))
-  .addBooleanOption(opt =>
-    opt.setName("portal_only")
-      .setDescription("Only show portal players (for search type)")
-      .setRequired(false))
-  .addBooleanOption(opt =>
-    opt.setName("filter_min")
-      .setDescription("Only show players with Min% >= 15% (for search type, default: true)")
-      .setRequired(false))
-  .addStringOption(opt =>
-    opt.setName("class")
-      .setDescription("Filter by class: Fr, So, Jr, Sr (for search type)")
-      .setRequired(false));
+      .setDescription("Player name")
+      .setRequired(true));
+
+const shareListCommand = new SlashCommandBuilder()
+  .setName("sharelist")
+  .setDescription("Share your watchlist (top 3) publicly in the channel");
 
 const commands = [
   searchCommand,
@@ -219,7 +212,8 @@ const commands = [
   new SlashCommandBuilder()
     .setName("stats")
     .setDescription("List all available stats"),
-  shareCommand,
+  sharePlayerCommand,
+  shareListCommand,
 ];
 
 function getStatList(interaction, count = 6) {
@@ -357,7 +351,7 @@ export async function startBot() {
 
         const description = ranked.map((p, i) =>
           `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
-          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th)`).join(" · ") +
+          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th %)`).join(" · ") +
           ` · Combined: **${p.combined}**`
         ).join("\n\n");
 
@@ -383,30 +377,7 @@ export async function startBot() {
           return;
         }
 
-        const keyStats = ["Min", "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
-
-        const embed = new EmbedBuilder()
-          .setTitle(`🏀 ${player.name}`)
-          .setColor(0x0052cc)
-          .addFields(
-            { name: "Team", value: player.team || "—", inline: true },
-            { name: "Position", value: player.position || "—", inline: true },
-            { name: "Year", value: player.year || "—", inline: true },
-            { name: "Height", value: player.height || "—", inline: true },
-            { name: "In Portal", value: player.inPortal ? "✅ Yes" : "No", inline: true },
-            { name: "PPG", value: player.stats?.PPG != null ? player.stats.PPG.toFixed(1) : "—", inline: true },
-            { name: "RPG", value: player.stats?.RPG != null ? player.stats.RPG.toFixed(1) : "—", inline: true },
-            { name: "APG", value: player.stats?.APG != null ? player.stats.APG.toFixed(1) : "—", inline: true },
-            {
-              name: "Key Stats",
-              value: keyStats
-                .filter(s => player.stats[s] !== undefined)
-                .map(s => `**${s}:** ${formatVal(s, player.stats[s] ?? 0)}`)
-                .join(" · ") || "No stats available",
-            }
-          );
-
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [buildPlayerEmbed(player)] });
       }
 
       else if (commandName === "watchlist") {
@@ -426,7 +397,7 @@ export async function startBot() {
             const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
             const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
             if (val !== undefined && pct !== undefined) {
-              return `${s}: ${formatVal(s, val)} (${pct}th)`;
+              return `${s}: ${formatVal(s, val)} (${pct}th %)`;
             }
             return s;
           }).join(", ");
@@ -487,7 +458,7 @@ export async function startBot() {
         });
 
         const statStr = statList.map(s =>
-          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th)`
+          `${s}: ${formatVal(s, statValues[s])} (${statPcts[s]}th %)`
         ).join(", ");
 
         await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
@@ -569,181 +540,53 @@ export async function startBot() {
         await interaction.reply({ flags: MessageFlags.Ephemeral, embeds: [embed] });
       }
 
-      else if (commandName === "share") {
-        const type = interaction.options.getString("type");
+      else if (commandName === "shareplayer") {
+        await interaction.deferReply();
 
-        if (type === "player") {
-          await interaction.deferReply();
+        const name = interaction.options.getString("name");
+        const player = await Player.findOne({
+          name: { $regex: name, $options: "i" }
+        }).lean();
 
-          const name = interaction.options.getString("name");
-          if (!name) {
-            await interaction.editReply({ content: "❌ Please provide a player name.", flags: MessageFlags.Ephemeral });
-            return;
-          }
-
-          const player = await Player.findOne({
-            name: { $regex: name, $options: "i" }
-          }).lean();
-
-          if (!player) {
-            await interaction.editReply({ content: `❌ No player found matching "${name}"`, flags: MessageFlags.Ephemeral });
-            return;
-          }
-
-          const keyStats = ["Min", "ORTG", "DRTG", "eFG", "TS", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
-
-          const embed = new EmbedBuilder()
-            .setTitle(`🏀 ${player.name}`)
-            .setColor(0x0052cc)
-            .setFooter({ text: `Shared by ${interaction.user.username}` })
-            .addFields(
-              { name: "Team", value: player.team || "—", inline: true },
-              { name: "Position", value: player.position || "—", inline: true },
-              { name: "Year", value: player.year || "—", inline: true },
-              { name: "Height", value: player.height || "—", inline: true },
-              { name: "In Portal", value: player.inPortal ? "✅ Yes" : "No", inline: true },
-              { name: "PPG", value: player.stats?.PPG != null ? player.stats.PPG.toFixed(1) : "—", inline: true },
-              { name: "RPG", value: player.stats?.RPG != null ? player.stats.RPG.toFixed(1) : "—", inline: true },
-              { name: "APG", value: player.stats?.APG != null ? player.stats.APG.toFixed(1) : "—", inline: true },
-              {
-                name: "Key Stats",
-                value: keyStats
-                  .filter(s => player.stats[s] !== undefined)
-                  .map(s => `**${s}:** ${formatVal(s, player.stats[s] ?? 0)}`)
-                  .join(" · ") || "No stats available",
-              }
-            );
-
-          await interaction.editReply({ embeds: [embed] });
+        if (!player) {
+          await interaction.editReply({ content: `❌ No player found matching "${name}"`, flags: MessageFlags.Ephemeral });
+          return;
         }
 
-        else if (type === "watchlist") {
-          await interaction.deferReply();
+        await interaction.editReply({ embeds: [buildPlayerEmbed(player, interaction.user.username)] });
+      }
 
-          const entries = await BotWatchlist.find({
-            discordUserId: interaction.user.id
-          }).sort({ addedAt: -1 }).limit(3).lean();
+      else if (commandName === "sharelist") {
+        await interaction.deferReply();
 
-          if (entries.length === 0) {
-            await interaction.editReply({ content: "Your watchlist is empty.", flags: MessageFlags.Ephemeral });
-            return;
-          }
+        const entries = await BotWatchlist.find({
+          discordUserId: interaction.user.id
+        }).sort({ addedAt: -1 }).limit(3).lean();
 
-          const description = entries.map((e, i) => {
-            const statStr = e.stats.map(s => {
-              const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
-              const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
-              if (val !== undefined && pct !== undefined) {
-                return `${s}: ${formatVal(s, val)} (${pct}th)`;
-              }
-              return s;
-            }).join(", ");
-            return `**${i + 1}. ${e.playerName} — ${e.playerTeam}**\nStats: ${statStr}`;
-          }).join("\n\n");
-
-          const embed = new EmbedBuilder()
-            .setTitle(`📋 ${interaction.user.username}'s Watchlist`)
-            .setColor(0x0052cc)
-            .setDescription(description)
-            .setFooter({ text: "Showing top 3 · Use /watchlist to see all" });
-
-          await interaction.editReply({ embeds: [embed] });
+        if (entries.length === 0) {
+          await interaction.editReply({ content: "Your watchlist is empty.", flags: MessageFlags.Ephemeral });
+          return;
         }
 
-        else if (type === "search") {
-          await interaction.deferReply();
-
-          const stat1 = interaction.options.getString("stat1");
-          if (!stat1) {
-            await interaction.editReply({ content: "❌ Please provide at least one stat.", flags: MessageFlags.Ephemeral });
-            return;
-          }
-
-          const stat2 = interaction.options.getString("stat2");
-          const stat3 = interaction.options.getString("stat3");
-          const portalOnly = interaction.options.getBoolean("portal_only") ?? false;
-          const filterMin = interaction.options.getBoolean("filter_min") ?? true;
-          const classFilter = interaction.options.getString("class");
-          const statList = [stat1, stat2, stat3].filter(Boolean);
-
-          const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
-          if (invalid.length > 0) {
-            await interaction.editReply({ content: `❌ Invalid stats: ${invalid.join(", ")}`, flags: MessageFlags.Ephemeral });
-            return;
-          }
-
-          const query = {};
-          if (filterMin) query["stats.Min"] = { $gte: 15 };
-          if (portalOnly) query["inPortal"] = true;
-          if (classFilter) {
-            const classMap = { fr: "Fr", so: "So", jr: "Jr", sr: "Sr" };
-            const classList = classFilter.split(",")
-              .map(c => {
-                const lower = c.trim().toLowerCase();
-                return classMap[lower] || c.trim();
-              })
-              .filter(Boolean);
-            if (classList.length > 0) query["year"] = { $in: classList };
-          }
-
-          const pool = await Player.find(query).lean();
-
-          if (pool.length === 0) {
-            await interaction.editReply({ content: "❌ No players found matching your filters.", flags: MessageFlags.Ephemeral });
-            return;
-          }
-
-          const percentileFns = {};
-          for (const s of statList) {
-            percentileFns[s] = calcPercentiles(s, pool);
-          }
-
-          const ranked = pool.map((p) => {
-            const statValues = {};
-            const statPcts = {};
-            let combined = 0;
-            for (const s of statList) {
-              const val = p.stats[s] ?? 0;
-              const pct = percentileFns[s](val);
-              statValues[s] = val;
-              statPcts[s] = pct;
-              combined += pct;
+        const description = entries.map((e, i) => {
+          const statStr = e.stats.map(s => {
+            const val = e.statValues?.get ? e.statValues.get(s) : e.statValues?.[s];
+            const pct = e.statPcts?.get ? e.statPcts.get(s) : e.statPcts?.[s];
+            if (val !== undefined && pct !== undefined) {
+              return `${s}: ${formatVal(s, val)} (${pct}th %)`;
             }
-            return { id: p.id, name: p.name, team: p.team, year: p.year, statValues, statPcts, combined };
-          })
-            .sort((a, b) => {
-              if (b.combined !== a.combined) return b.combined - a.combined;
-              const aRaw = statList.reduce((sum, s) => {
-                const val = a.statValues[s] ?? 0;
-                return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
-              }, 0);
-              const bRaw = statList.reduce((sum, s) => {
-                const val = b.statValues[s] ?? 0;
-                return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
-              }, 0);
-              return bRaw - aRaw;
-            })
-            .slice(0, 5);
+            return s;
+          }).join(", ");
+          return `**${i + 1}. ${e.playerName} — ${e.playerTeam}**\nStats: ${statStr}`;
+        }).join("\n\n");
 
-          if (ranked.length === 0) {
-            await interaction.editReply({ content: "❌ No players found matching your filters.", flags: MessageFlags.Ephemeral });
-            return;
-          }
+        const embed = new EmbedBuilder()
+          .setTitle(`📋 ${interaction.user.username}'s Watchlist`)
+          .setColor(0x0052cc)
+          .setDescription(description)
+          .setFooter({ text: "Showing top 3 · Use /watchlist to see all" });
 
-          const description = ranked.map((p, i) =>
-            `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
-            statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th)`).join(" · ") +
-            ` · Combined: **${p.combined}**`
-          ).join("\n\n");
-
-          const embed = new EmbedBuilder()
-            .setTitle(`🏀 Top Players: ${statList.join(" + ")}`)
-            .setColor(0x0052cc)
-            .setDescription(description)
-            .setFooter({ text: `Top 5 · Min%${filterMin ? " ≥15%" : " unfiltered"}${portalOnly ? " · Portal only" : ""}${classFilter ? ` · Class: ${classFilter}` : ""} · Shared by ${interaction.user.username}` });
-
-          await interaction.editReply({ embeds: [embed] });
-        }
+        await interaction.editReply({ embeds: [embed] });
       }
 
     } catch (err) {

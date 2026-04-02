@@ -27,7 +27,7 @@ while (true) {
 }
 console.log(`Found ${allTeams.length} teams`);
 
-// Step 2: Get roster for each team, build espnId → { name, team } map
+// Step 2: Get roster for each team
 console.log("Fetching rosters...");
 const espnPlayers = {};
 
@@ -54,7 +54,7 @@ for (let i = 0; i < allTeams.length; i++) {
 }
 console.log(`Total players found across all rosters: ${Object.keys(espnPlayers).length}`);
 
-// Step 3: Fetch PPG/RPG/APG stats from leaders endpoint
+// Step 3: Fetch PPG/RPG/APG from leaders endpoint
 console.log("Fetching leaders (PPG, RPG, APG)...");
 const leadersRes = await fetch(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/mens-college-basketball/seasons/2026/types/2/leaders?limit=1000`);
 const leadersData = await leadersRes.json();
@@ -82,7 +82,9 @@ for (const category of leadersData.categories) {
   }
 }
 
-// Step 4: Load DB players for matching
+console.log(`Stats found for ${Object.keys(athleteStatMap).length} unique athletes`);
+
+// Step 4: Load DB players
 console.log("Loading database players for matching...");
 const allDbPlayers = await Player.find({}, "name team _id").lean();
 console.log(`Loaded ${allDbPlayers.length} players from database`);
@@ -124,15 +126,15 @@ function schoolMatches(a, b) {
 }
 
 function findDbPlayer(espnName, espnTeam) {
-  // Exact name + team
+  // 1. Exact name + team
   let player = allDbPlayers.find(p => p.name === espnName && p.team === espnTeam);
   if (player) return { player, fuzzy: false };
 
-  // Exact name only
+  // 2. Exact name only
   player = allDbPlayers.find(p => p.name === espnName);
   if (player) return { player, fuzzy: false };
 
-  // Fuzzy — skip entirely if we don't have a team to validate against
+  // 3. Fuzzy — skip if no team to validate against
   if (!espnTeam || espnTeam.trim() === "") return null;
 
   const espnFirst = normalizeName(espnName.split(" ")[0] || "");
@@ -148,15 +150,15 @@ function findDbPlayer(espnName, espnTeam) {
     const dbLast = normalizeName(parts.slice(1).join(" ") || "");
     const dbSchool = normalizeName(dbPlayer.team || "");
 
-    // Require first two letters of first name to match
-    if (!espnFirst || !dbFirst || espnFirst.slice(0, 2) !== dbFirst.slice(0, 2)) continue;
+    // First letter of first name must match
+    if (!espnFirst || !dbFirst || espnFirst[0] !== dbFirst[0]) continue;
 
     // School must match closely
     if (!schoolMatches(espnSchool, dbSchool)) continue;
 
-    // Fuzzy last name — max 1 edit
+    // Fuzzy last name — max 2 edits
     const lastDist = editDistance(espnLast, dbLast);
-    if (lastDist < bestDistance && lastDist <= 1) {
+    if (lastDist < bestDistance && lastDist <= 2) {
       bestDistance = lastDist;
       bestMatch = dbPlayer;
     }
@@ -166,6 +168,7 @@ function findDbPlayer(espnName, espnTeam) {
   return null;
 }
 
+// Step 5: Match and update — only use leaders endpoint data
 console.log("Matching and updating players...");
 
 let matched = 0;
@@ -192,35 +195,10 @@ for (let i = 0; i < rosterIds.length; i++) {
   if (processedDbIds.has(String(player._id))) continue;
   processedDbIds.add(String(player._id));
 
-  // Get stats from leaders map or fetch individually
-  let stats = athleteStatMap[espnId];
+  // Only use leaders endpoint data — skip if not in top leaders
+  const stats = athleteStatMap[espnId];
 
   if (!stats) {
-    try {
-      const res = await fetch(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/mens-college-basketball/seasons/2026/types/2/athletes/${espnId}/statistics/0`);
-      const data = await res.json();
-
-      const splits = data.splits?.categories || [];
-      const statEntry = {};
-
-      for (const cat of splits) {
-        for (const stat of cat.stats || []) {
-          if (stat.abbreviation === "PPG" || stat.name === "pointsPerGame") statEntry.PPG = stat.value;
-          if (stat.abbreviation === "RPG" || stat.name === "reboundsPerGame") statEntry.RPG = stat.value;
-          if (stat.abbreviation === "APG" || stat.name === "assistsPerGame") statEntry.APG = stat.value;
-        }
-      }
-
-      if (Object.keys(statEntry).length > 0) {
-        stats = statEntry;
-      }
-      await delay(30);
-    } catch {
-      // silently skip
-    }
-  }
-
-  if (!stats || Object.keys(stats).length === 0) {
     noStats++;
     continue;
   }
@@ -247,8 +225,8 @@ console.log(`\nResults:`);
 console.log(`  Exact matched: ${matched - fuzzyMatched}`);
 console.log(`  Fuzzy matched: ${fuzzyMatched}`);
 console.log(`  Unmatched (not in our DB): ${unmatched}`);
-console.log(`  Matched but no stats found: ${noStats}`);
-console.log(`  Total updated: ${matched}`);
+console.log(`  Matched but not in top leaders: ${noStats}`);
+console.log(`  Total updated with ESPN stats: ${matched}`);
 
 await mongoose.disconnect();
 console.log("\nDone");
