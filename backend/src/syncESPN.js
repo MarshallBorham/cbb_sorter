@@ -65,8 +65,8 @@ const STAT_MAP = {
   assistsPerGame:  "APG",
 };
 
-// Build name+team → stat value map by fetching each leader's athlete profile
-const athleteStatByName = {}; // { "Name|Team": { PPG, RPG, APG } }
+const athleteStatByName = {};
+let skippedLowGames = 0;
 
 for (const category of leadersData.categories) {
   const statKey = STAT_MAP[category.name];
@@ -77,21 +77,39 @@ for (const category of leadersData.categories) {
     const leader = category.leaders[i];
     const athleteRef = leader.athlete?.["$ref"];
     const teamRef = leader.team?.["$ref"];
+    const statsRef = leader.statistics?.["$ref"];
     if (!athleteRef) continue;
 
     try {
-      const [athleteRes, teamRes] = await Promise.all([
+      const [athleteRes, teamRes, statsRes] = await Promise.all([
         fetch(athleteRef),
         teamRef ? fetch(teamRef) : Promise.resolve(null),
+        statsRef ? fetch(statsRef) : Promise.resolve(null),
       ]);
 
       const athleteData = await athleteRes.json();
       const teamData = teamRes ? await teamRes.json() : null;
+      const statsData = statsRes ? await statsRes.json() : null;
 
       const name = athleteData.fullName || athleteData.displayName || "";
       const team = teamData?.displayName || teamData?.name || "";
 
       if (!name) continue;
+
+      // Check games played — skip players with fewer than 10 games
+      let gamesPlayed = 0;
+      if (statsData?.splits?.categories) {
+        for (const cat of statsData.splits.categories) {
+          const gpStat = cat.stats?.find(s => s.name === "gamesPlayed");
+          if (gpStat) { gamesPlayed = gpStat.value; break; }
+        }
+      }
+
+      if (gamesPlayed < 10) {
+        console.log(`  Skipping ${name} (${team}) — only ${gamesPlayed} games played`);
+        skippedLowGames++;
+        continue;
+      }
 
       const key = `${name}|${team}`;
       if (!athleteStatByName[key]) athleteStatByName[key] = {};
@@ -106,6 +124,7 @@ for (const category of leadersData.categories) {
 }
 
 console.log(`Resolved stats for ${Object.keys(athleteStatByName).length} unique name+team combinations`);
+console.log(`Skipped ${skippedLowGames} entries with fewer than 10 games played`);
 
 // Step 4: Load DB players
 console.log("Loading database players for matching...");
