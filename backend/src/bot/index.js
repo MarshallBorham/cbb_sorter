@@ -102,6 +102,80 @@ function buildPlayerEmbed(player, sharedBy = null) {
   return embed;
 }
 
+async function runSearch(statList, limit, portalOnly, filterMin, classFilter) {
+  const query = {};
+  if (filterMin) query["stats.Min"] = { $gte: 15 };
+  if (portalOnly) query["inPortal"] = true;
+  if (classFilter) {
+    const classMap = { fr: "Fr", so: "So", jr: "Jr", sr: "Sr" };
+    const classList = classFilter.split(",")
+      .map(c => {
+        const lower = c.trim().toLowerCase();
+        return classMap[lower] || c.trim();
+      })
+      .filter(Boolean);
+    if (classList.length > 0) query["year"] = { $in: classList };
+  }
+
+  const pool = await Player.find(query).lean();
+  if (pool.length === 0) return null;
+
+  const percentileFns = {};
+  for (const s of statList) {
+    percentileFns[s] = calcPercentiles(s, pool);
+  }
+
+  return pool.map((p) => {
+    const statValues = {};
+    const statPcts = {};
+    let combined = 0;
+    for (const s of statList) {
+      const val = p.stats[s] ?? 0;
+      const pct = percentileFns[s](val);
+      statValues[s] = val;
+      statPcts[s] = pct;
+      combined += pct;
+    }
+    return { id: p.id, name: p.name, team: p.team, year: p.year, statValues, statPcts, combined };
+  })
+    .sort((a, b) => {
+      if (b.combined !== a.combined) return b.combined - a.combined;
+      const aRaw = statList.reduce((sum, s) => {
+        const val = a.statValues[s] ?? 0;
+        return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
+      }, 0);
+      const bRaw = statList.reduce((sum, s) => {
+        const val = b.statValues[s] ?? 0;
+        return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
+      }, 0);
+      return bRaw - aRaw;
+    })
+    .slice(0, limit);
+}
+
+function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, sharedBy = null) {
+  const description = ranked.map((p, i) =>
+    `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
+    statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th %)`).join(" · ") +
+    ` · Combined: **${p.combined}**`
+  ).join("\n\n");
+
+  const actualCount = ranked.length;
+  const footerText = [
+    `Top ${actualCount}${actualCount < limit ? ` (only ${actualCount} players match)` : ""}`,
+    `Min%${filterMin ? " ≥15%" : " unfiltered"}`,
+    portalOnly ? "Portal only" : null,
+    classFilter ? `Class: ${classFilter}` : null,
+    sharedBy ? `Shared by ${sharedBy}` : null,
+  ].filter(Boolean).join(" · ");
+
+  return new EmbedBuilder()
+    .setTitle(`🏀 Top Players: ${statList.join(" + ")}`)
+    .setColor(0x0052cc)
+    .setDescription(description)
+    .setFooter({ text: footerText });
+}
+
 function addStatOptions(builder, count, required = false) {
   for (let i = 1; i <= count; i++) {
     builder.addStringOption(opt =>
@@ -186,6 +260,52 @@ const shareListCommand = new SlashCommandBuilder()
   .setName("sharelist")
   .setDescription("Share your watchlist (top 3) publicly in the channel");
 
+const shareSearchCommand = new SlashCommandBuilder()
+  .setName("sharesearch")
+  .setDescription("Share top 5 search results publicly in the channel")
+  .addStringOption(opt =>
+    opt.setName("stat1")
+      .setDescription("First stat to search by")
+      .setRequired(true)
+      .setAutocomplete(true))
+  .addBooleanOption(opt =>
+    opt.setName("portal_only")
+      .setDescription("Only show players in the transfer portal")
+      .setRequired(false))
+  .addBooleanOption(opt =>
+    opt.setName("filter_min")
+      .setDescription("Only show players with Min% >= 15% (default: true)")
+      .setRequired(false))
+  .addStringOption(opt =>
+    opt.setName("class")
+      .setDescription("Filter by class: Fr, So, Jr, Sr (comma separated e.g. Fr,So)")
+      .setRequired(false))
+  .addStringOption(opt =>
+    opt.setName("stat2")
+      .setDescription("Second stat")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat3")
+      .setDescription("Stat 3")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat4")
+      .setDescription("Stat 4")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat5")
+      .setDescription("Stat 5")
+      .setRequired(false)
+      .setAutocomplete(true))
+  .addStringOption(opt =>
+    opt.setName("stat6")
+      .setDescription("Stat 6")
+      .setRequired(false)
+      .setAutocomplete(true));
+
 const commands = [
   searchCommand,
   new SlashCommandBuilder()
@@ -214,6 +334,7 @@ const commands = [
     .setDescription("List all available stats"),
   sharePlayerCommand,
   shareListCommand,
+  shareSearchCommand,
 ];
 
 function getStatList(interaction, count = 6) {
@@ -291,77 +412,16 @@ export async function startBot() {
           return;
         }
 
-        const query = {};
-        if (filterMin) query["stats.Min"] = { $gte: 15 };
-        if (portalOnly) query["inPortal"] = true;
-        if (classFilter) {
-          const classMap = { fr: "Fr", so: "So", jr: "Jr", sr: "Sr" };
-          const classList = classFilter.split(",")
-            .map(c => {
-              const lower = c.trim().toLowerCase();
-              return classMap[lower] || c.trim();
-            })
-            .filter(Boolean);
-          if (classList.length > 0) query["year"] = { $in: classList };
-        }
+        const ranked = await runSearch(statList, limit, portalOnly, filterMin, classFilter);
 
-        const pool = await Player.find(query).lean();
-
-        if (pool.length === 0) {
+        if (!ranked || ranked.length === 0) {
           await interaction.editReply("❌ No players found matching your filters.");
           return;
         }
 
-        const percentileFns = {};
-        for (const s of statList) {
-          percentileFns[s] = calcPercentiles(s, pool);
-        }
-
-        const ranked = pool.map((p) => {
-          const statValues = {};
-          const statPcts = {};
-          let combined = 0;
-          for (const s of statList) {
-            const val = p.stats[s] ?? 0;
-            const pct = percentileFns[s](val);
-            statValues[s] = val;
-            statPcts[s] = pct;
-            combined += pct;
-          }
-          return { id: p.id, name: p.name, team: p.team, year: p.year, statValues, statPcts, combined };
-        })
-          .sort((a, b) => {
-            if (b.combined !== a.combined) return b.combined - a.combined;
-            const aRaw = statList.reduce((sum, s) => {
-              const val = a.statValues[s] ?? 0;
-              return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
-            }, 0);
-            const bRaw = statList.reduce((sum, s) => {
-              const val = b.statValues[s] ?? 0;
-              return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
-            }, 0);
-            return bRaw - aRaw;
-          })
-          .slice(0, limit);
-
-        if (ranked.length === 0) {
-          await interaction.editReply("❌ No players found matching your filters.");
-          return;
-        }
-
-        const description = ranked.map((p, i) =>
-          `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
-          statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${p.statPcts[s]}th %)`).join(" · ") +
-          ` · Combined: **${p.combined}**`
-        ).join("\n\n");
-
-        const embed = new EmbedBuilder()
-          .setTitle(`🏀 Top Players: ${statList.join(" + ")}`)
-          .setColor(0x0052cc)
-          .setDescription(description)
-          .setFooter({ text: `Top ${limit} · Min%${filterMin ? " ≥15%" : " unfiltered"}${portalOnly ? " · Portal only" : ""}${classFilter ? ` · Class: ${classFilter}` : ""}` });
-
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply({
+          embeds: [buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter)]
+        });
       }
 
       else if (commandName === "player") {
@@ -587,6 +647,37 @@ export async function startBot() {
           .setFooter({ text: "Showing top 3 · Use /watchlist to see all" });
 
         await interaction.editReply({ embeds: [embed] });
+      }
+
+      else if (commandName === "sharesearch") {
+        await interaction.deferReply();
+
+        const statList = getStatList(interaction);
+        const portalOnly = interaction.options.getBoolean("portal_only") ?? false;
+        const filterMin = interaction.options.getBoolean("filter_min") ?? true;
+        const classFilter = interaction.options.getString("class");
+
+        const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
+        if (invalid.length > 0) {
+          await interaction.editReply({ content: `❌ Invalid stats: ${invalid.join(", ")}`, flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        if (statList.length === 0) {
+          await interaction.editReply({ content: "❌ Please provide at least one stat.", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const ranked = await runSearch(statList, 5, portalOnly, filterMin, classFilter);
+
+        if (!ranked || ranked.length === 0) {
+          await interaction.editReply({ content: "❌ No players found matching your filters.", flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        await interaction.editReply({
+          embeds: [buildSearchEmbed(ranked, statList, 5, filterMin, portalOnly, classFilter, interaction.user.username)]
+        });
       }
 
     } catch (err) {
