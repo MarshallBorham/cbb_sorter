@@ -113,7 +113,7 @@ function buildPlayerEmbed(player, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}, powered by cbb.up.railway.app` });
   return embed;
 }
 
