@@ -10,6 +10,7 @@ import "dotenv/config";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DRY_RUN  = process.argv.includes("--dry-run");
 const TEST_RUN = process.argv.includes("--test-run");
+const TOP100   = process.argv.includes("--top100");
 
 function pf(val) {
   const n = parseFloat(val);
@@ -34,7 +35,7 @@ function yearLabel(val) {
 // 9:OR  10:DR  11:ARate  12:TO  13:FTM  14:FTA  15:FT(0-1)
 // 16:2PM  17:2PA  18:2P(0-1)  19:3PM  20:3PA  21:3P(0-1)
 // 22:Blk  23:Stl  24:FTRate  25:Class  26:Height
-// 27:skip  28:skip  29:skip  30:FC40  31:skip  32:playerId
+// 27:skip  28:skip  29:skip  30:FC40  31:skip  32:skip
 // 33:skip  34:skip  35:skip
 // 36:Close2PM  37:Close2PA  38:Far2PM  39:Far2PA
 // 40:Close2P(0-1)  41:Far2P(0-1)
@@ -44,17 +45,59 @@ function yearLabel(val) {
 // 53:BPM  54:skip  55:OBPM  56:DBPM
 // 57-63:skip  64:position  65:3P100  66:DOB(skip)
 
-function rowToDoc(cols) {
-  const name = cols[0]?.trim();
-  const team = cols[1]?.trim();
-  const height = cols[26]?.trim();
-
-  const id = `${name}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+function rowToStats(cols) {
   const dunksMade = pf(cols[42]);
   const dunksAtt  = pf(cols[43]);
   const dunkPct   = cols[44] !== "" && cols[44] != null
     ? pf(cols[44]) * 100
     : dunksAtt > 0 ? (dunksMade / dunksAtt) * 100 : 0;
+
+  return {
+    G:         pf(cols[3]),
+    Min:       pf(cols[4]),
+    ORTG:      pf(cols[5]),
+    Usg:       pf(cols[6]),
+    eFG:       pf(cols[7]),
+    TS:        pf(cols[8]),
+    OR:        pf(cols[9]),
+    DR:        pf(cols[10]),
+    ARate:     pf(cols[11]),
+    TO:        pf(cols[12]),
+    FTM:       pf(cols[13]),
+    FTA:       pf(cols[14]),
+    FT:        pf(cols[15]) * 100,
+    "2PM":     pf(cols[16]),
+    "2PA":     pf(cols[17]),
+    "2P":      pf(cols[18]) * 100,
+    "3PM":     pf(cols[19]),
+    "3PA":     pf(cols[20]),
+    "3P":      pf(cols[21]) * 100,
+    Blk:       pf(cols[22]),
+    Stl:       pf(cols[23]),
+    FTRate:    pf(cols[24]),
+    FC40:      pf(cols[30]),
+    Close2PM:  pf(cols[36]),
+    Close2PA:  pf(cols[37]),
+    Far2PM:    pf(cols[38]),
+    Far2PA:    pf(cols[39]),
+    Close2P:   pf(cols[40]) * 100,
+    Far2P:     pf(cols[41]) * 100,
+    DunksMade: dunksMade,
+    DunksAtt:  dunksAtt,
+    DunkPct:   dunkPct,
+    DRTG:      pf(cols[47]),
+    BPM:       pf(cols[53]),
+    OBPM:      pf(cols[55]),
+    DBPM:      pf(cols[56]),
+    "3P100":   pf(cols[65]),
+  };
+}
+
+function rowToDoc(cols) {
+  const name = cols[0]?.trim();
+  const team = cols[1]?.trim();
+  const height = cols[26]?.trim();
+  const id = `${name}-${team}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
   return {
     id,
@@ -64,45 +107,7 @@ function rowToDoc(cols) {
     position:     cols[64]?.trim() || "",
     height,
     heightInches: heightToInches(height),
-    stats: {
-      G:         pf(cols[3]),
-      Min:       pf(cols[4]),
-      ORTG:      pf(cols[5]),
-      Usg:       pf(cols[6]),
-      eFG:       pf(cols[7]),
-      TS:        pf(cols[8]),
-      OR:        pf(cols[9]),
-      DR:        pf(cols[10]),
-      ARate:     pf(cols[11]),
-      TO:        pf(cols[12]),
-      FTM:       pf(cols[13]),
-      FTA:       pf(cols[14]),
-      FT:        pf(cols[15]) * 100,
-      "2PM":     pf(cols[16]),
-      "2PA":     pf(cols[17]),
-      "2P":      pf(cols[18]) * 100,
-      "3PM":     pf(cols[19]),
-      "3PA":     pf(cols[20]),
-      "3P":      pf(cols[21]) * 100,
-      Blk:       pf(cols[22]),
-      Stl:       pf(cols[23]),
-      FTRate:    pf(cols[24]),
-      FC40:      pf(cols[30]),
-      Close2PM:  pf(cols[36]),
-      Close2PA:  pf(cols[37]),
-      Far2PM:    pf(cols[38]),
-      Far2PA:    pf(cols[39]),
-      Close2P:   pf(cols[40]) * 100,
-      Far2P:     pf(cols[41]) * 100,
-      DunksMade: dunksMade,
-      DunksAtt:  dunksAtt,
-      DunkPct:   dunkPct,
-      DRTG:      pf(cols[47]),
-      BPM:       pf(cols[53]),
-      OBPM:      pf(cols[55]),
-      DBPM:      pf(cols[56]),
-      "3P100":   pf(cols[65]),
-    },
+    stats:        rowToStats(cols),
   };
 }
 
@@ -140,7 +145,7 @@ function printDoc(d) {
   console.log(`  DunksMade=${s.DunksMade} DunksAtt=${s.DunksAtt} DunkPct=${s.DunkPct.toFixed(1)}%`);
 }
 
-// Parse CSV into docs
+// Parse CSV
 const filePath = resolve(__dirname, "data/trank_data.csv");
 const rl = createInterface({ input: createReadStream(filePath) });
 
@@ -167,9 +172,9 @@ for await (const line of rl) {
 
 console.log(`Parsed ${docs.length} players`);
 
-// --- DRY RUN: no DB, just print first 10 ---
+// --- DRY RUN ---
 if (DRY_RUN) {
-  console.log("\n--- DRY RUN: first 10 players ---");
+  console.log(`\n--- DRY RUN${TOP100 ? " (top100)" : ""}: first 10 players ---`);
   docs.slice(0, 10).forEach((d, i) => {
     console.log(`\n${i + 1}.`);
     printDoc(d);
@@ -178,12 +183,12 @@ if (DRY_RUN) {
   process.exit(0);
 }
 
-// Connect to DB for test-run or full seed
+// Connect to DB
 const MONGO_URI = getEnvVar("MONGODB_URI");
 await mongoose.connect(MONGO_URI);
 console.log("Connected to MongoDB");
 
-// --- TEST RUN: upsert only Rienk Mast ---
+// --- TEST RUN ---
 if (TEST_RUN) {
   const mastDoc = docs.find(d => d.name === "Rienk Mast");
   if (!mastDoc) {
@@ -192,17 +197,50 @@ if (TEST_RUN) {
     process.exit(1);
   }
 
-  console.log("\nParsed data for Rienk Mast:");
+  console.log(`\nParsed data for Rienk Mast (${TOP100 ? "statsTop100" : "stats"}):`);
   printDoc(mastDoc);
 
-  await Player.findOneAndReplace(
-    { name: "Rienk Mast" },
-    mastDoc,
-    { upsert: true, new: true }
-  );
+  if (TOP100) {
+    await Player.updateOne(
+      { name: "Rienk Mast" },
+      { $set: { statsTop100: mastDoc.stats } }
+    );
+  } else {
+    await Player.findOneAndReplace(
+      { name: "Rienk Mast" },
+      mastDoc,
+      { upsert: true, new: true }
+    );
+  }
 
-  console.log("\nRienk Mast upserted into database. Check his profile on the site to verify.");
+  console.log(`\nRienk Mast ${TOP100 ? "statsTop100" : "stats"} updated. Check his profile on the site to verify.`);
   await mongoose.disconnect();
+  process.exit(0);
+}
+
+// --- TOP100 SEED: update statsTop100 only, don't wipe DB ---
+if (TOP100) {
+  console.log("Updating statsTop100 for matched players...");
+  let updated = 0;
+  let notFound = 0;
+
+  for (const doc of docs) {
+    const result = await Player.updateOne(
+      { id: doc.id },
+      { $set: { statsTop100: doc.stats } }
+    );
+    if (result.modifiedCount > 0) {
+      updated++;
+    } else {
+      notFound++;
+    }
+  }
+
+  console.log(`\nResults:`);
+  console.log(`  Updated statsTop100: ${updated}`);
+  console.log(`  Not found in DB: ${notFound}`);
+  await mongoose.disconnect();
+  console.log("Done");
   process.exit(0);
 }
 

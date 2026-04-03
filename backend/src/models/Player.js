@@ -10,6 +10,7 @@ const playerSchema = new mongoose.Schema({
   heightInches: Number,
   inPortal: { type: Boolean, default: false },
   stats: { type: Map, of: Number },
+  statsTop100: { type: Map, of: Number, default: {} },
 });
 
 export const Player = mongoose.model("Player", playerSchema);

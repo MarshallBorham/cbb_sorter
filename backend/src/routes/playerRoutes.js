@@ -31,8 +31,8 @@ const HM_TEAMS = new Set([
   "Oklahoma State", "TCU", "Texas Tech", "UCF", "Utah", "West Virginia",
 ]);
 
-function calcPercentiles(stat, pool) {
-  const values = pool.map((p) => p.stats[stat] ?? 0).sort((a, b) => a - b);
+function calcPercentiles(stat, pool, statsField) {
+  const values = pool.map((p) => (p[statsField]?.[stat] ?? 0)).sort((a, b) => a - b);
   const total = values.length;
   return function getPercentile(val) {
     let low = 0, high = total;
@@ -47,7 +47,10 @@ function calcPercentiles(stat, pool) {
 }
 
 playerRouter.get("/", async (req, res) => {
-  const { stats, filterMin, filters, classes, minHeight, maxHeight, portalOnly, hmFilter } = req.query;
+  const { stats, filterMin, filters, classes, minHeight, maxHeight, portalOnly, hmFilter, top100 } = req.query;
+
+  const useTop100 = top100 === "true";
+  const statsField = useTop100 ? "statsTop100" : "stats";
 
   if (!stats) {
     return res.status(400).json({ error: "stats query param is required" });
@@ -77,14 +80,29 @@ playerRouter.get("/", async (req, res) => {
   }
 
   const query = {};
-  if (filterMin === "true") {
-    query["stats.Min"] = { $gte: 15 };
+
+  if (useTop100) {
+    // Only include players that have top100 stats
+    query["statsTop100.G"] = { $exists: true, $gt: 0 };
+    if (filterMin === "true") {
+      query["statsTop100.Min"] = { $gte: 15 };
+    }
+    for (const f of advancedFilters) {
+      const val = parseFloat(f.value);
+      if (isNaN(val)) continue;
+      query[`statsTop100.${f.stat}`] = f.type === "min" ? { $gte: val } : { $lte: val };
+    }
+  } else {
+    if (filterMin === "true") {
+      query["stats.Min"] = { $gte: 15 };
+    }
+    for (const f of advancedFilters) {
+      const val = parseFloat(f.value);
+      if (isNaN(val)) continue;
+      query[`stats.${f.stat}`] = f.type === "min" ? { $gte: val } : { $lte: val };
+    }
   }
-  for (const f of advancedFilters) {
-    const val = parseFloat(f.value);
-    if (isNaN(val)) continue;
-    query[`stats.${f.stat}`] = f.type === "min" ? { $gte: val } : { $lte: val };
-  }
+
   if (classes) {
     const classList = classes.split(",").map((c) => c.trim()).filter(Boolean);
     if (classList.length > 0) {
@@ -108,7 +126,7 @@ playerRouter.get("/", async (req, res) => {
 
     const percentileFns = {};
     for (const s of statList) {
-      percentileFns[s] = calcPercentiles(s, pool);
+      percentileFns[s] = calcPercentiles(s, pool, statsField);
     }
 
     let ranked = pool
@@ -117,7 +135,7 @@ playerRouter.get("/", async (req, res) => {
         const statPcts = {};
         let combined = 0;
         for (const s of statList) {
-          const val = p.stats[s] ?? 0;
+          const val = p[statsField]?.[s] ?? 0;
           const pct = percentileFns[s](val);
           statValues[s] = val;
           statPcts[s] = pct;

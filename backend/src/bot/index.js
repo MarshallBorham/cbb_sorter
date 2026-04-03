@@ -92,8 +92,8 @@ function ordinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function calcPercentiles(stat, pool) {
-  const values = pool.map((p) => p.stats[stat] ?? 0).sort((a, b) => a - b);
+function calcPercentiles(stat, pool, statsField = "stats") {
+  const values = pool.map((p) => (p[statsField]?.[stat] ?? 0)).sort((a, b) => a - b);
   const total = values.length;
   return function getPercentile(val) {
     let low = 0, high = total;
@@ -116,7 +116,7 @@ function formatVal(stat, val) {
 }
 
 function buildPlayerEmbed(player, sharedBy = null) {
-  const keyStats = ["PPG", "RPG", "APG", "Min", "ORTG", "DRTG", "eFG", "Close2PM", "Close2P", "3P", "3PM", "Stl", "Blk", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
+  const keyStats = ["PPG", "RPG", "APG", "Min", "ORTG", "DRTG", "eFG", "3P", "Stl", "Blk", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
 
   const embed = new EmbedBuilder()
     .setTitle(`🏀 ${player.name}`)
@@ -136,13 +136,21 @@ function buildPlayerEmbed(player, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}, visit cbb.up.railway.app` });
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
   return embed;
 }
 
-async function runSearch(statList, limit, portalOnly, filterMin, classFilter, hmFilter) {
+async function runSearch(statList, limit, portalOnly, filterMin, classFilter, hmFilter, top100 = false) {
+  const statsField = top100 ? "statsTop100" : "stats";
   const query = {};
-  if (filterMin) query["stats.Min"] = { $gte: 15 };
+
+  if (top100) {
+    query["statsTop100.G"] = { $exists: true, $gt: 0 };
+    if (filterMin) query["statsTop100.Min"] = { $gte: 15 };
+  } else {
+    if (filterMin) query["stats.Min"] = { $gte: 15 };
+  }
+
   if (portalOnly) query["inPortal"] = true;
   if (classFilter) {
     const classMap = { fr: "Fr", so: "So", jr: "Jr", sr: "Sr" };
@@ -155,22 +163,20 @@ async function runSearch(statList, limit, portalOnly, filterMin, classFilter, hm
     if (classList.length > 0) query["year"] = { $in: classList };
   }
 
-  // Fetch full pool and calculate percentiles against everyone
   const pool = await Player.find(query).lean();
   if (pool.length === 0) return null;
 
   const percentileFns = {};
   for (const s of statList) {
-    percentileFns[s] = calcPercentiles(s, pool);
+    percentileFns[s] = calcPercentiles(s, pool, statsField);
   }
 
-  // Rank all players using full-pool percentiles
   let ranked = pool.map((p) => {
     const statValues = {};
     const statPcts = {};
     let combined = 0;
     for (const s of statList) {
-      const val = p.stats[s] ?? 0;
+      const val = p[statsField]?.[s] ?? 0;
       const pct = percentileFns[s](val);
       statValues[s] = val;
       statPcts[s] = pct;
@@ -191,7 +197,6 @@ async function runSearch(statList, limit, portalOnly, filterMin, classFilter, hm
       return bRaw - aRaw;
     });
 
-  // Apply HM filter after percentiles are calculated
   if (hmFilter === "hm") {
     ranked = ranked.filter(p => HM_TEAMS.has(p.team));
   } else if (hmFilter === "non_hm") {
@@ -199,11 +204,10 @@ async function runSearch(statList, limit, portalOnly, filterMin, classFilter, hm
   }
 
   if (ranked.length === 0) return null;
-
   return ranked.slice(0, limit);
 }
 
-function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, hmFilter, sharedBy = null) {
+function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, hmFilter, top100, sharedBy = null) {
   const description = ranked.map((p, i) =>
     `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
     statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${ordinal(p.statPcts[s])} %)`).join(" · ") +
@@ -217,7 +221,8 @@ function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classF
     portalOnly ? "Portal only" : null,
     classFilter ? `Class: ${classFilter}` : null,
     hmFilter === "hm" ? "HM only" : hmFilter === "non_hm" ? "Non-HM only" : null,
-    sharedBy ? `Shared by ${sharedBy}, visit cbb.up.railway.app` : null,
+    top100 ? "Top 100 competition" : null,
+    sharedBy ? `Shared by ${sharedBy}` : null,
   ].filter(Boolean).join(" · ");
 
   return new EmbedBuilder()
@@ -298,7 +303,7 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}, visit cbb.up.railway.app` });
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
   return embed;
 }
 
@@ -347,6 +352,10 @@ const searchCommand = new SlashCommandBuilder()
         { name: "HM Only — high-major schools only", value: "hm" },
         { name: "Non-HM Only — non high-major schools only", value: "non_hm" },
       ))
+  .addBooleanOption(opt =>
+    opt.setName("top100")
+      .setDescription("Use stats vs top 100 competition only")
+      .setRequired(false))
   .addStringOption(opt =>
     opt.setName("stat2")
       .setDescription("Second stat")
@@ -422,6 +431,10 @@ const shareSearchCommand = new SlashCommandBuilder()
         { name: "HM Only — high-major schools only", value: "hm" },
         { name: "Non-HM Only — non high-major schools only", value: "non_hm" },
       ))
+  .addBooleanOption(opt =>
+    opt.setName("top100")
+      .setDescription("Use stats vs top 100 competition only")
+      .setRequired(false))
   .addStringOption(opt =>
     opt.setName("stat2")
       .setDescription("Second stat")
@@ -569,6 +582,7 @@ export async function startBot() {
         const filterMin = interaction.options.getBoolean("filter_min") ?? true;
         const classFilter = interaction.options.getString("class");
         const hmFilter = interaction.options.getString("hm_filter") ?? null;
+        const top100 = interaction.options.getBoolean("top100") ?? false;
 
         const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
         if (invalid.length > 0) {
@@ -581,7 +595,7 @@ export async function startBot() {
           return;
         }
 
-        const ranked = await runSearch(statList, limit, portalOnly, filterMin, classFilter, hmFilter);
+        const ranked = await runSearch(statList, limit, portalOnly, filterMin, classFilter, hmFilter, top100);
 
         if (!ranked || ranked.length === 0) {
           await interaction.editReply("❌ No players found matching your filters.");
@@ -589,7 +603,7 @@ export async function startBot() {
         }
 
         await interaction.editReply({
-          embeds: [buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, hmFilter)]
+          embeds: [buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, hmFilter, top100)]
         });
       }
 
@@ -826,6 +840,7 @@ export async function startBot() {
         const filterMin = interaction.options.getBoolean("filter_min") ?? true;
         const classFilter = interaction.options.getString("class");
         const hmFilter = interaction.options.getString("hm_filter") ?? null;
+        const top100 = interaction.options.getBoolean("top100") ?? false;
 
         const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
         if (invalid.length > 0) {
@@ -838,7 +853,7 @@ export async function startBot() {
           return;
         }
 
-        const ranked = await runSearch(statList, 5, portalOnly, filterMin, classFilter, hmFilter);
+        const ranked = await runSearch(statList, 5, portalOnly, filterMin, classFilter, hmFilter, top100);
 
         if (!ranked || ranked.length === 0) {
           await interaction.editReply({ content: "❌ No players found matching your filters.", flags: MessageFlags.Ephemeral });
@@ -846,7 +861,7 @@ export async function startBot() {
         }
 
         await interaction.editReply({
-          embeds: [buildSearchEmbed(ranked, statList, 5, filterMin, portalOnly, classFilter, hmFilter, interaction.user.username)]
+          embeds: [buildSearchEmbed(ranked, statList, 5, filterMin, portalOnly, classFilter, hmFilter, top100, interaction.user.username)]
         });
       }
 

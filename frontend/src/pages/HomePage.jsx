@@ -58,6 +58,7 @@ export default function HomePage() {
   const [selectedStats, setSelectedStats] = useState(["eFG", "ARate"]);
   const [filterMin, setFilterMin] = useState(true);
   const [portalOnly, setPortalOnly] = useState(false);
+  const [top100, setTop100] = useState(false);
   const [hmFilter, setHmFilter] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState([
@@ -141,9 +142,10 @@ export default function HomePage() {
 
     const portalParam = portalOnly ? "&portalOnly=true" : "";
     const hmParam = hmFilter ? `&hmFilter=${hmFilter}` : "";
+    const top100Param = top100 ? "&top100=true" : "";
 
     navigate(
-      `/results?stats=${selectedStats.join(",")}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam}${portalParam}${hmParam}`
+      `/results?stats=${selectedStats.join(",")}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam}${portalParam}${hmParam}${top100Param}`
     );
   }
 
@@ -230,7 +232,7 @@ export default function HomePage() {
               </label>
             </div>
 
-            <div className="form-group" style={{ marginBottom: "1rem" }}>
+            <div className="form-group" style={{ marginBottom: "0.75rem" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
                 <input
                   type="checkbox"
@@ -238,6 +240,17 @@ export default function HomePage() {
                   onChange={(e) => setPortalOnly(e.target.checked)}
                 />
                 Only show players currently in the Transfer Portal
+              </label>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={top100}
+                  onChange={(e) => setTop100(e.target.checked)}
+                />
+                Top 100 competition only (stats vs top 100 teams)
               </label>
             </div>
 

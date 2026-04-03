@@ -22,6 +22,7 @@ export default function ResultsPage() {
   const classesParam = searchParams.get("classes");
   const portalOnly = searchParams.get("portalOnly");
   const hmFilter = searchParams.get("hmFilter");
+  const top100 = searchParams.get("top100");
   const statList = statsParam ? statsParam.split(",") : [];
   const activeFilters = filtersParam ? JSON.parse(decodeURIComponent(filtersParam)) : [];
 
@@ -39,7 +40,7 @@ export default function ResultsPage() {
       setError("");
       try {
         const res = await fetch(
-          `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam ? `&classes=${classesParam}` : ""}${portalOnly === "true" ? "&portalOnly=true" : ""}${hmFilter ? `&hmFilter=${hmFilter}` : ""}`
+          `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam ? `&classes=${classesParam}` : ""}${portalOnly === "true" ? "&portalOnly=true" : ""}${hmFilter ? `&hmFilter=${hmFilter}` : ""}${top100 === "true" ? "&top100=true" : ""}`
         );
         const data = await res.json();
         if (!res.ok) { setError(data.error || "Failed to fetch players"); return; }
@@ -51,7 +52,7 @@ export default function ResultsPage() {
       }
     }
     fetchPlayers();
-  }, [statsParam, filterMin, filtersParam, classesParam, portalOnly, hmFilter]);
+  }, [statsParam, filterMin, filtersParam, classesParam, portalOnly, hmFilter, top100]);
 
   async function handleSave(player) {
     setSaving(player.id);
@@ -77,6 +78,7 @@ export default function ResultsPage() {
     portalOnly === "true" ? "In Transfer Portal" : null,
     classesParam ? `Class: ${classesParam}` : null,
     hmFilter === "hm" ? "HM Schools Only" : hmFilter === "non_hm" ? "Non-HM Schools Only" : null,
+    top100 === "true" ? "Top 100 Competition" : null,
     ...activeFilters
       .filter((f) => f.value !== "")
       .map((f) => `${f.stat} ${f.type === "min" ? "≥" : "≤"} ${f.value}`),
