@@ -218,26 +218,42 @@ if (TEST_RUN) {
   process.exit(0);
 }
 
-// --- TOP100 SEED: update statsTop100 only, match by name+team ---
+// --- TOP100 SEED: update statsTop100 only, don't wipe DB ---
 if (TOP100) {
   console.log("Updating statsTop100 for matched players...");
   let updated = 0;
+  let updatedByName = 0;
   let notFound = 0;
 
   for (const doc of docs) {
-    const result = await Player.updateOne(
+    // 1. Exact name + team
+    let result = await Player.updateOne(
       { name: doc.name, team: doc.team },
       { $set: { statsTop100: doc.stats } }
     );
+
     if (result.modifiedCount > 0) {
       updated++;
+      continue;
+    }
+
+    // 2. Name-only fallback (handles team name differences between CSVs)
+    result = await Player.updateOne(
+      { name: doc.name },
+      { $set: { statsTop100: doc.stats } }
+    );
+
+    if (result.modifiedCount > 0) {
+      updatedByName++;
     } else {
       notFound++;
     }
   }
 
   console.log(`\nResults:`);
-  console.log(`  Updated statsTop100: ${updated}`);
+  console.log(`  Updated (name + team): ${updated}`);
+  console.log(`  Updated (name only fallback): ${updatedByName}`);
+  console.log(`  Total updated: ${updated + updatedByName}`);
   console.log(`  Not found in DB: ${notFound}`);
   await mongoose.disconnect();
   console.log("Done");
