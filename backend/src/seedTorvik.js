@@ -41,8 +41,7 @@ function yearLabel(val) {
 // 45:skip  46:skip  47:DRTG  48:skip  49:skip
 // 50:skip  51:skip  52:skip
 // 53:BPM  54:skip  55:OBPM  56:DBPM
-// 57-62:skip  63:3P100
-// 64:position
+// 57-64:skip  64:position  65:3P100  66:DOB(skip)
 
 function rowToDoc(cols) {
   const name = cols[0]?.trim();
@@ -103,7 +102,7 @@ function rowToDoc(cols) {
       BPM:       pf(cols[53]),
       OBPM:      pf(cols[55]),
       DBPM:      pf(cols[56]),
-      "3P100":   pf(cols[63]),
+      "3P100":   pf(cols[65]),
     },
   };
 }
@@ -164,15 +163,18 @@ console.log(`Parsed ${docs.length} players`);
 if (DRY_RUN) {
   console.log("\n--- DRY RUN: first 10 players ---");
   docs.slice(0, 10).forEach((d, i) => {
+    const s = d.stats;
     console.log(`\n${i + 1}. ${d.name} | ${d.team} | ${d.year} | ${d.height} | ${d.position}`);
-    console.log(`   G=${d.stats.G} Min=${d.stats.Min} ORTG=${d.stats.ORTG} DRTG=${d.stats.DRTG}`);
-    console.log(`   eFG=${d.stats.eFG} TS=${d.stats.TS} BPM=${d.stats.BPM} OBPM=${d.stats.OBPM} DBPM=${d.stats.DBPM}`);
-    console.log(`   FTM=${d.stats.FTM} FTA=${d.stats.FTA} FT=${d.stats.FT.toFixed(1)}%`);
-    console.log(`   2PM=${d.stats["2PM"]} 2PA=${d.stats["2PA"]} 2P=${d.stats["2P"].toFixed(1)}%`);
-    console.log(`   3PM=${d.stats["3PM"]} 3PA=${d.stats["3PA"]} 3P=${d.stats["3P"].toFixed(1)}%`);
-    console.log(`   FC40=${d.stats.FC40} FTRate=${d.stats.FTRate} 3P100=${d.stats["3P100"]}`);
-    console.log(`   Close2PM=${d.stats.Close2PM} Close2PA=${d.stats.Close2PA} Far2PM=${d.stats.Far2PM} Far2PA=${d.stats.Far2PA}`);
-    console.log(`   DunksMade=${d.stats.DunksMade} DunksAtt=${d.stats.DunksAtt} DunkPct=${d.stats.DunkPct.toFixed(1)}%`);
+    console.log(`   G=${s.G} Min=${s.Min} ORTG=${s.ORTG} Usg=${s.Usg}`);
+    console.log(`   eFG=${s.eFG} TS=${s.TS} OR=${s.OR} DR=${s.DR} ARate=${s.ARate} TO=${s.TO}`);
+    console.log(`   Blk=${s.Blk} Stl=${s.Stl} FTRate=${s.FTRate} FC40=${s.FC40}`);
+    console.log(`   DRTG=${s.DRTG} BPM=${s.BPM} OBPM=${s.OBPM} DBPM=${s.DBPM} 3P100=${s["3P100"]}`);
+    console.log(`   FTM=${s.FTM} FTA=${s.FTA} FT=${s.FT.toFixed(1)}%`);
+    console.log(`   2PM=${s["2PM"]} 2PA=${s["2PA"]} 2P=${s["2P"].toFixed(1)}%`);
+    console.log(`   3PM=${s["3PM"]} 3PA=${s["3PA"]} 3P=${s["3P"].toFixed(1)}%`);
+    console.log(`   Close2PM=${s.Close2PM} Close2PA=${s.Close2PA} Close2P=${s.Close2P.toFixed(1)}%`);
+    console.log(`   Far2PM=${s.Far2PM} Far2PA=${s.Far2PA} Far2P=${s.Far2P.toFixed(1)}%`);
+    console.log(`   DunksMade=${s.DunksMade} DunksAtt=${s.DunksAtt} DunkPct=${s.DunkPct.toFixed(1)}%`);
   });
   console.log(`\nTotal parsed: ${docs.length} players`);
 } else {
