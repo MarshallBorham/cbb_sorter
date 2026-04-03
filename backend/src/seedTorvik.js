@@ -8,7 +8,8 @@ import { getEnvVar } from "./getEnvVar.js";
 import "dotenv/config";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DRY_RUN = process.argv.includes("--dry-run");
+const DRY_RUN  = process.argv.includes("--dry-run");
+const TEST_RUN = process.argv.includes("--test-run");
 
 function pf(val) {
   const n = parseFloat(val);
@@ -41,7 +42,7 @@ function yearLabel(val) {
 // 45:skip  46:skip  47:DRTG  48:skip  49:skip
 // 50:skip  51:skip  52:skip
 // 53:BPM  54:skip  55:OBPM  56:DBPM
-// 57-64:skip  64:position  65:3P100  66:DOB(skip)
+// 57-63:skip  64:position  65:3P100  66:DOB(skip)
 
 function rowToDoc(cols) {
   const name = cols[0]?.trim();
@@ -126,14 +127,22 @@ function parseCSVLine(line) {
   return cols;
 }
 
-if (!DRY_RUN) {
-  const MONGO_URI = getEnvVar("MONGODB_URI");
-  await mongoose.connect(MONGO_URI);
-  console.log("Connected to MongoDB");
-  await Player.deleteMany({});
-  console.log("Cleared existing players");
+function printDoc(d) {
+  const s = d.stats;
+  console.log(`\n  ${d.name} | ${d.team} | ${d.year} | ${d.height} | ${d.position}`);
+  console.log(`  G=${s.G} Min=${s.Min} ORTG=${s.ORTG} Usg=${s.Usg}`);
+  console.log(`  eFG=${s.eFG} TS=${s.TS} OR=${s.OR} DR=${s.DR} ARate=${s.ARate} TO=${s.TO}`);
+  console.log(`  Blk=${s.Blk} Stl=${s.Stl} FTRate=${s.FTRate} FC40=${s.FC40}`);
+  console.log(`  DRTG=${s.DRTG} BPM=${s.BPM} OBPM=${s.OBPM} DBPM=${s.DBPM} 3P100=${s["3P100"]}`);
+  console.log(`  FTM=${s.FTM} FTA=${s.FTA} FT=${s.FT.toFixed(1)}%`);
+  console.log(`  2PM=${s["2PM"]} 2PA=${s["2PA"]} 2P=${s["2P"].toFixed(1)}%`);
+  console.log(`  3PM=${s["3PM"]} 3PA=${s["3PA"]} 3P=${s["3P"].toFixed(1)}%`);
+  console.log(`  Close2PM=${s.Close2PM} Close2PA=${s.Close2PA} Close2P=${s.Close2P.toFixed(1)}%`);
+  console.log(`  Far2PM=${s.Far2PM} Far2PA=${s.Far2PA} Far2P=${s.Far2P.toFixed(1)}%`);
+  console.log(`  DunksMade=${s.DunksMade} DunksAtt=${s.DunksAtt} DunkPct=${s.DunkPct.toFixed(1)}%`);
 }
 
+// Parse CSV into docs
 const filePath = resolve(__dirname, "data/trank_data.csv");
 const rl = createInterface({ input: createReadStream(filePath) });
 
@@ -160,36 +169,61 @@ for await (const line of rl) {
 
 console.log(`Parsed ${docs.length} players`);
 
+// --- DRY RUN: no DB, just print first 10 ---
 if (DRY_RUN) {
   console.log("\n--- DRY RUN: first 10 players ---");
   docs.slice(0, 10).forEach((d, i) => {
-    const s = d.stats;
-    console.log(`\n${i + 1}. ${d.name} | ${d.team} | ${d.year} | ${d.height} | ${d.position}`);
-    console.log(`   G=${s.G} Min=${s.Min} ORTG=${s.ORTG} Usg=${s.Usg}`);
-    console.log(`   eFG=${s.eFG} TS=${s.TS} OR=${s.OR} DR=${s.DR} ARate=${s.ARate} TO=${s.TO}`);
-    console.log(`   Blk=${s.Blk} Stl=${s.Stl} FTRate=${s.FTRate} FC40=${s.FC40}`);
-    console.log(`   DRTG=${s.DRTG} BPM=${s.BPM} OBPM=${s.OBPM} DBPM=${s.DBPM} 3P100=${s["3P100"]}`);
-    console.log(`   FTM=${s.FTM} FTA=${s.FTA} FT=${s.FT.toFixed(1)}%`);
-    console.log(`   2PM=${s["2PM"]} 2PA=${s["2PA"]} 2P=${s["2P"].toFixed(1)}%`);
-    console.log(`   3PM=${s["3PM"]} 3PA=${s["3PA"]} 3P=${s["3P"].toFixed(1)}%`);
-    console.log(`   Close2PM=${s.Close2PM} Close2PA=${s.Close2PA} Close2P=${s.Close2P.toFixed(1)}%`);
-    console.log(`   Far2PM=${s.Far2PM} Far2PA=${s.Far2PA} Far2P=${s.Far2P.toFixed(1)}%`);
-    console.log(`   DunksMade=${s.DunksMade} DunksAtt=${s.DunksAtt} DunkPct=${s.DunkPct.toFixed(1)}%`);
+    console.log(`\n${i + 1}.`);
+    printDoc(d);
   });
   console.log(`\nTotal parsed: ${docs.length} players`);
-} else {
-  const batchSize = 500;
-  let inserted = 0;
-  for (let i = 0; i < docs.length; i += batchSize) {
-    const batch = docs.slice(i, i + batchSize);
-    try {
-      await Player.insertMany(batch, { ordered: false });
-    } catch {
-      // ordered: false inserts what it can, duplicates are skipped
-    }
-    inserted += batch.length;
-    console.log(`Processed ${inserted}/${docs.length}`);
-  }
-  await mongoose.disconnect();
-  console.log("Done");
+  process.exit(0);
 }
+
+// Connect to DB for test-run or full seed
+const MONGO_URI = getEnvVar("MONGODB_URI");
+await mongoose.connect(MONGO_URI);
+console.log("Connected to MongoDB");
+
+// --- TEST RUN: upsert only Rienk Mast ---
+if (TEST_RUN) {
+  const mastDoc = docs.find(d => d.name === "Rienk Mast");
+  if (!mastDoc) {
+    console.log("Rienk Mast not found in CSV!");
+    await mongoose.disconnect();
+    process.exit(1);
+  }
+
+  console.log("\nParsed data for Rienk Mast:");
+  printDoc(mastDoc);
+
+  await Player.findOneAndReplace(
+    { name: "Rienk Mast" },
+    mastDoc,
+    { upsert: true, new: true }
+  );
+
+  console.log("\nRienk Mast upserted into database. Check his profile on the site to verify.");
+  await mongoose.disconnect();
+  process.exit(0);
+}
+
+// --- FULL SEED ---
+await Player.deleteMany({});
+console.log("Cleared existing players");
+
+const batchSize = 500;
+let inserted = 0;
+for (let i = 0; i < docs.length; i += batchSize) {
+  const batch = docs.slice(i, i + batchSize);
+  try {
+    await Player.insertMany(batch, { ordered: false });
+  } catch {
+    // ordered: false inserts what it can, duplicates are skipped
+  }
+  inserted += batch.length;
+  console.log(`Processed ${inserted}/${docs.length}`);
+}
+
+await mongoose.disconnect();
+console.log("Done");
