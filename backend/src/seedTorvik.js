@@ -28,18 +28,20 @@ function yearLabel(val) {
   return map[trimmed] || trimmed;
 }
 
-// Column index mapping (no header row in CSV)
+// Verified column index mapping (no header row in CSV)
 // 0:name  1:team  2:conf  3:G  4:Min  5:ORTG  6:Usg  7:eFG  8:TS
 // 9:OR  10:DR  11:ARate  12:TO  13:FTM  14:FTA  15:FT(0-1)
 // 16:2PM  17:2PA  18:2P(0-1)  19:3PM  20:3PA  21:3P(0-1)
 // 22:Blk  23:Stl  24:FTRate  25:Class  26:Height
-// 27:PR(skip)  28:PRPG(skip)  29:skip  30:FC40  31:skip  32:playerId
+// 27:skip  28:skip  29:skip  30:FC40  31:skip  32:playerId
 // 33:skip  34:skip  35:skip
 // 36:Close2PM  37:Close2PA  38:Far2PM  39:Far2PA
 // 40:Close2P(0-1)  41:Far2P(0-1)
 // 42:DunksMade  43:DunksAtt  44:DunkPct(0-1)
-// 45:skip  46:DRTG  47:skip  48:skip  49:skip
-// 50:BPM  51:OBPM  52:DBPM  53:3P100
+// 45:skip  46:skip  47:DRTG  48:skip  49:skip
+// 50:skip  51:skip  52:skip
+// 53:BPM  54:skip  55:OBPM  56:DBPM
+// 57-62:skip  63:3P100
 // 64:position
 
 function rowToDoc(cols) {
@@ -97,11 +99,11 @@ function rowToDoc(cols) {
       DunksMade: dunksMade,
       DunksAtt:  dunksAtt,
       DunkPct:   dunkPct,
-      DRTG:      pf(cols[46]),
-      BPM:       pf(cols[50]),
-      OBPM:      pf(cols[51]),
-      DBPM:      pf(cols[52]),
-      "3P100":   pf(cols[53]),
+      DRTG:      pf(cols[47]),
+      BPM:       pf(cols[53]),
+      OBPM:      pf(cols[55]),
+      DBPM:      pf(cols[56]),
+      "3P100":   pf(cols[63]),
     },
   };
 }
@@ -168,7 +170,7 @@ if (DRY_RUN) {
     console.log(`   FTM=${d.stats.FTM} FTA=${d.stats.FTA} FT=${d.stats.FT.toFixed(1)}%`);
     console.log(`   2PM=${d.stats["2PM"]} 2PA=${d.stats["2PA"]} 2P=${d.stats["2P"].toFixed(1)}%`);
     console.log(`   3PM=${d.stats["3PM"]} 3PA=${d.stats["3PA"]} 3P=${d.stats["3P"].toFixed(1)}%`);
-    console.log(`   FC40=${d.stats.FC40} FTRate=${d.stats.FTRate}`);
+    console.log(`   FC40=${d.stats.FC40} FTRate=${d.stats.FTRate} 3P100=${d.stats["3P100"]}`);
     console.log(`   Close2PM=${d.stats.Close2PM} Close2PA=${d.stats.Close2PA} Far2PM=${d.stats.Far2PM} Far2PA=${d.stats.Far2PA}`);
     console.log(`   DunksMade=${d.stats.DunksMade} DunksAtt=${d.stats.DunksAtt} DunkPct=${d.stats.DunkPct.toFixed(1)}%`);
   });
