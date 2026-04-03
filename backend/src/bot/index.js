@@ -8,6 +8,23 @@ const ALLOWED_GUILDS = new Set([
   "1181335653703749783"
 ]);
 
+const HM_TEAMS = new Set([
+  "California", "Clemson", "Duke", "Florida State", "Georgia Tech",
+  "Louisville", "Miami", "North Carolina", "NC State", "Notre Dame",
+  "Pittsburgh", "SMU", "Stanford", "Syracuse", "Virginia", "Virginia Tech",
+  "Wake Forest", "Butler", "UConn", "Creighton", "DePaul", "Georgetown",
+  "Marquette", "Providence", "St. John's", "Seton Hall", "Villanova", "Xavier",
+  "Illinois", "Indiana", "Iowa", "Maryland", "Michigan", "Michigan State",
+  "Minnesota", "Nebraska", "Northwestern", "Ohio State", "Oregon", "Penn State",
+  "Purdue", "Rutgers", "UCLA", "USC", "Washington", "Wisconsin",
+  "Alabama", "Arkansas", "Auburn", "Florida", "Georgia", "Kentucky",
+  "LSU", "Mississippi State", "Missouri", "Oklahoma", "Ole Miss",
+  "South Carolina", "Tennessee", "Texas A&M", "Texas", "Vanderbilt",
+  "Boston College", "Arizona", "Arizona State", "Baylor", "BYU",
+  "Cincinnati", "Colorado", "Houston", "Iowa State", "Kansas", "Kansas State",
+  "Oklahoma State", "TCU", "Texas Tech", "UCF", "Utah", "West Virginia",
+]);
+
 const VALID_STATS = [
   { value: "PPG",      name: "Points Per Game" },
   { value: "RPG",      name: "Rebounds Per Game" },
@@ -119,11 +136,11 @@ function buildPlayerEmbed(player, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}, visit cbb.up.railway.app` });
   return embed;
 }
 
-async function runSearch(statList, limit, portalOnly, filterMin, classFilter) {
+async function runSearch(statList, limit, portalOnly, filterMin, classFilter, hmFilter) {
   const query = {};
   if (filterMin) query["stats.Min"] = { $gte: 15 };
   if (portalOnly) query["inPortal"] = true;
@@ -138,6 +155,7 @@ async function runSearch(statList, limit, portalOnly, filterMin, classFilter) {
     if (classList.length > 0) query["year"] = { $in: classList };
   }
 
+  // Fetch full pool and calculate percentiles against everyone
   const pool = await Player.find(query).lean();
   if (pool.length === 0) return null;
 
@@ -146,7 +164,8 @@ async function runSearch(statList, limit, portalOnly, filterMin, classFilter) {
     percentileFns[s] = calcPercentiles(s, pool);
   }
 
-  return pool.map((p) => {
+  // Rank all players using full-pool percentiles
+  let ranked = pool.map((p) => {
     const statValues = {};
     const statPcts = {};
     let combined = 0;
@@ -170,11 +189,21 @@ async function runSearch(statList, limit, portalOnly, filterMin, classFilter) {
         return sum + (LOWER_IS_BETTER.has(s) ? -val : val);
       }, 0);
       return bRaw - aRaw;
-    })
-    .slice(0, limit);
+    });
+
+  // Apply HM filter after percentiles are calculated
+  if (hmFilter === "hm") {
+    ranked = ranked.filter(p => HM_TEAMS.has(p.team));
+  } else if (hmFilter === "non_hm") {
+    ranked = ranked.filter(p => !HM_TEAMS.has(p.team));
+  }
+
+  if (ranked.length === 0) return null;
+
+  return ranked.slice(0, limit);
 }
 
-function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, sharedBy = null) {
+function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, hmFilter, sharedBy = null) {
   const description = ranked.map((p, i) =>
     `**${i + 1}. ${p.name} — ${p.team} · ${p.year}**\n` +
     statList.map(s => `${s}: ${formatVal(s, p.statValues[s])} (${ordinal(p.statPcts[s])} %)`).join(" · ") +
@@ -187,7 +216,8 @@ function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classF
     `Min%${filterMin ? " ≥15%" : " unfiltered"}`,
     portalOnly ? "Portal only" : null,
     classFilter ? `Class: ${classFilter}` : null,
-    sharedBy ? `Shared by ${sharedBy}` : null,
+    hmFilter === "hm" ? "HM only" : hmFilter === "non_hm" ? "Non-HM only" : null,
+    sharedBy ? `Shared by ${sharedBy}, visit cbb.up.railway.app` : null,
   ].filter(Boolean).join(" · ");
 
   return new EmbedBuilder()
@@ -268,7 +298,7 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
+  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}, visit cbb.up.railway.app` });
   return embed;
 }
 
@@ -309,6 +339,14 @@ const searchCommand = new SlashCommandBuilder()
     opt.setName("class")
       .setDescription("Filter by class: Fr, So, Jr, Sr (comma separated e.g. Fr,So)")
       .setRequired(false))
+  .addStringOption(opt =>
+    opt.setName("hm_filter")
+      .setDescription("Filter by high-major conference schools")
+      .setRequired(false)
+      .addChoices(
+        { name: "HM Only — high-major schools only", value: "hm" },
+        { name: "Non-HM Only — non high-major schools only", value: "non_hm" },
+      ))
   .addStringOption(opt =>
     opt.setName("stat2")
       .setDescription("Second stat")
@@ -376,6 +414,14 @@ const shareSearchCommand = new SlashCommandBuilder()
     opt.setName("class")
       .setDescription("Filter by class: Fr, So, Jr, Sr (comma separated e.g. Fr,So)")
       .setRequired(false))
+  .addStringOption(opt =>
+    opt.setName("hm_filter")
+      .setDescription("Filter by high-major conference schools")
+      .setRequired(false)
+      .addChoices(
+        { name: "HM Only — high-major schools only", value: "hm" },
+        { name: "Non-HM Only — non high-major schools only", value: "non_hm" },
+      ))
   .addStringOption(opt =>
     opt.setName("stat2")
       .setDescription("Second stat")
@@ -522,6 +568,7 @@ export async function startBot() {
         const portalOnly = interaction.options.getBoolean("portal_only") ?? false;
         const filterMin = interaction.options.getBoolean("filter_min") ?? true;
         const classFilter = interaction.options.getString("class");
+        const hmFilter = interaction.options.getString("hm_filter") ?? null;
 
         const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
         if (invalid.length > 0) {
@@ -534,7 +581,7 @@ export async function startBot() {
           return;
         }
 
-        const ranked = await runSearch(statList, limit, portalOnly, filterMin, classFilter);
+        const ranked = await runSearch(statList, limit, portalOnly, filterMin, classFilter, hmFilter);
 
         if (!ranked || ranked.length === 0) {
           await interaction.editReply("❌ No players found matching your filters.");
@@ -542,7 +589,7 @@ export async function startBot() {
         }
 
         await interaction.editReply({
-          embeds: [buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter)]
+          embeds: [buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classFilter, hmFilter)]
         });
       }
 
@@ -778,6 +825,7 @@ export async function startBot() {
         const portalOnly = interaction.options.getBoolean("portal_only") ?? false;
         const filterMin = interaction.options.getBoolean("filter_min") ?? true;
         const classFilter = interaction.options.getString("class");
+        const hmFilter = interaction.options.getString("hm_filter") ?? null;
 
         const invalid = statList.filter(s => !VALID_STAT_VALUES.includes(s));
         if (invalid.length > 0) {
@@ -790,7 +838,7 @@ export async function startBot() {
           return;
         }
 
-        const ranked = await runSearch(statList, 5, portalOnly, filterMin, classFilter);
+        const ranked = await runSearch(statList, 5, portalOnly, filterMin, classFilter, hmFilter);
 
         if (!ranked || ranked.length === 0) {
           await interaction.editReply({ content: "❌ No players found matching your filters.", flags: MessageFlags.Ephemeral });
@@ -798,7 +846,7 @@ export async function startBot() {
         }
 
         await interaction.editReply({
-          embeds: [buildSearchEmbed(ranked, statList, 5, filterMin, portalOnly, classFilter, interaction.user.username)]
+          embeds: [buildSearchEmbed(ranked, statList, 5, filterMin, portalOnly, classFilter, hmFilter, interaction.user.username)]
         });
       }
 
