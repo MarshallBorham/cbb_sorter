@@ -115,8 +115,9 @@ function formatVal(stat, val) {
   return val.toFixed(1);
 }
 
-function buildPlayerEmbed(player, sharedBy = null) {
+function buildPlayerEmbed(player, sharedBy = null, top100 = false) {
   const keyStats = ["PPG", "RPG", "APG", "Min", "ORTG", "DRTG", "eFG", "3P", "3PM", "Close2PM", "Close2P", "Stl", "Blk", "OR", "DR", "ARate", "TO", "BPM", "OBPM", "DBPM"];
+  const statsField = top100 ? "statsTop100" : "stats";
 
   const embed = new EmbedBuilder()
     .setTitle(`🏀 ${player.name}`)
@@ -128,15 +129,19 @@ function buildPlayerEmbed(player, sharedBy = null) {
       { name: "Height", value: player.height || "—", inline: true },
       { name: "In Portal", value: player.inPortal ? "✅ Yes" : "No", inline: true },
       {
-        name: "Key Stats",
+        name: `Key Stats${top100 ? " (vs Top 100)" : ""}`,
         value: keyStats
-          .filter(s => player.stats[s] !== undefined)
-          .map(s => `**${s}:** ${formatVal(s, player.stats[s] ?? 0)}`)
+          .filter(s => player[statsField]?.[s] !== undefined)
+          .map(s => `**${s}:** ${formatVal(s, player[statsField][s] ?? 0)}`)
           .join(" · ") || "No stats available",
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
+  const footerParts = [
+    top100 ? "Top 100 competition" : null,
+    sharedBy ? `Shared by ${sharedBy}` : null,
+  ].filter(Boolean);
+  if (footerParts.length > 0) embed.setFooter({ text: footerParts.join(" · ") });
   return embed;
 }
 
@@ -232,11 +237,15 @@ function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classF
     .setFooter({ text: footerText });
 }
 
-async function buildCompareEmbed(playerA, playerB, sharedBy = null) {
-  const pool = await Player.find({ "stats.Min": { $gte: 15 } }).lean();
+async function buildCompareEmbed(playerA, playerB, sharedBy = null, top100 = false) {
+  const statsField = top100 ? "statsTop100" : "stats";
+  const poolQuery = top100
+    ? { "statsTop100.G": { $exists: true, $gt: 0 } }
+    : { "stats.Min": { $gte: 15 } };
+  const pool = await Player.find(poolQuery).lean();
   const percentileFns = {};
   for (const { key } of COMPARE_STATS) {
-    percentileFns[key] = calcPercentiles(key, pool);
+    percentileFns[key] = calcPercentiles(key, pool, statsField);
   }
 
   let scoreA = 0;
@@ -256,8 +265,8 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null) {
   const linesB = [];
 
   for (const { key, label } of COMPARE_STATS) {
-    const valA = playerA.stats?.[key];
-    const valB = playerB.stats?.[key];
+          const valA = playerA[statsField]?.[key];
+          const valB = playerB[statsField]?.[key];
     const winner = getWinner(key, valA, valB);
 
     if (winner === "A") scoreA++;
@@ -303,8 +312,12 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null) {
       }
     );
 
-  if (sharedBy) embed.setFooter({ text: `Shared by ${sharedBy}` });
-  return embed;
+    const footerParts = [
+              top100 ? "Top 100 competition" : null,
+              sharedBy ? `Shared by ${sharedBy}` : null,
+          ].filter(Boolean);
+          if (footerParts.length > 0) embed.setFooter({ text: footerParts.join(" · ") });
+          return embed;
 }
 
 function addStatOptions(builder, count, required = false) {
@@ -397,7 +410,11 @@ const sharePlayerCommand = new SlashCommandBuilder()
   .addStringOption(opt =>
     opt.setName("name")
       .setDescription("Player name")
-      .setRequired(true));
+      .setRequired(true))
+  .addBooleanOption(opt =>
+    opt.setName("top100")
+      .setDescription("Use stats vs top 100 competition only")
+      .setRequired(false));
 
 const shareListCommand = new SlashCommandBuilder()
   .setName("sharelist")
@@ -471,7 +488,11 @@ const compareCommand = new SlashCommandBuilder()
   .addStringOption(opt =>
     opt.setName("player2")
       .setDescription("Second player name")
-      .setRequired(true));
+      .setRequired(true))
+  .addBooleanOption(opt =>
+    opt.setName("top100")
+      .setDescription("Use stats vs top 100 competition only")
+      .setRequired(false));
 
 const shareCompareCommand = new SlashCommandBuilder()
   .setName("sharecompare")
@@ -483,17 +504,27 @@ const shareCompareCommand = new SlashCommandBuilder()
   .addStringOption(opt =>
     opt.setName("player2")
       .setDescription("Second player name")
-      .setRequired(true));
+      .setRequired(true))
+  .addBooleanOption(opt =>
+    opt.setName("top100")
+      .setDescription("Use stats vs top 100 competition only")
+      .setRequired(false));
+
+const playerCommand = new SlashCommandBuilder()
+  .setName("player")
+  .setDescription("Show full stats for a player")
+  .addStringOption(opt =>
+    opt.setName("name")
+      .setDescription("Player name")
+      .setRequired(true))
+  .addBooleanOption(opt =>
+    opt.setName("top100")
+      .setDescription("Use stats vs top 100 competition only")
+      .setRequired(false));
 
 const commands = [
   searchCommand,
-  new SlashCommandBuilder()
-    .setName("player")
-    .setDescription("Show full stats for a player")
-    .addStringOption(opt =>
-      opt.setName("name")
-        .setDescription("Player name")
-        .setRequired(true)),
+  playerCommand,
   new SlashCommandBuilder()
     .setName("watchlist")
     .setDescription("View your saved players"),
@@ -611,6 +642,7 @@ export async function startBot() {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const name = interaction.options.getString("name");
+        const top100 = interaction.options.getBoolean("top100") ?? false;
         const player = await Player.findOne({
           name: { $regex: name, $options: "i" }
         }).lean();
@@ -620,7 +652,7 @@ export async function startBot() {
           return;
         }
 
-        await interaction.editReply({ embeds: [buildPlayerEmbed(player)] });
+        await interaction.editReply({ embeds: [buildPlayerEmbed(player, null, top100)] });
       }
 
       else if (commandName === "watchlist") {
@@ -787,6 +819,7 @@ export async function startBot() {
         await interaction.deferReply();
 
         const name = interaction.options.getString("name");
+        const top100 = interaction.options.getBoolean("top100") ?? false;
         const player = await Player.findOne({
           name: { $regex: name, $options: "i" }
         }).lean();
@@ -796,7 +829,7 @@ export async function startBot() {
           return;
         }
 
-        await interaction.editReply({ embeds: [buildPlayerEmbed(player, interaction.user.username)] });
+        await interaction.editReply({ embeds: [buildPlayerEmbed(player, interaction.user.username, top100)] });
       }
 
       else if (commandName === "sharelist") {
@@ -870,6 +903,7 @@ export async function startBot() {
 
         const name1 = interaction.options.getString("player1");
         const name2 = interaction.options.getString("player2");
+        const top100 = interaction.options.getBoolean("top100") ?? false;
 
         const [playerA, playerB] = await Promise.all([
           Player.findOne({ name: { $regex: name1, $options: "i" } }).lean(),
@@ -886,7 +920,7 @@ export async function startBot() {
         }
 
         await interaction.editReply({
-          embeds: [await buildCompareEmbed(playerA, playerB)]
+          embeds: [await buildCompareEmbed(playerA, playerB, null, top100)]
         });
       }
 
@@ -895,6 +929,7 @@ export async function startBot() {
 
         const name1 = interaction.options.getString("player1");
         const name2 = interaction.options.getString("player2");
+        const top100 = interaction.options.getBoolean("top100") ?? false;
 
         const [playerA, playerB] = await Promise.all([
           Player.findOne({ name: { $regex: name1, $options: "i" } }).lean(),
@@ -911,7 +946,7 @@ export async function startBot() {
         }
 
         await interaction.editReply({
-          embeds: [await buildCompareEmbed(playerA, playerB, interaction.user.username)]
+          embeds: [await buildCompareEmbed(playerA, playerB, interaction.user.username, top100)]
         });
       }
 
