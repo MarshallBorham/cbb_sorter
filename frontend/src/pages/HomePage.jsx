@@ -53,6 +53,8 @@ const HM_FILTER_OPTIONS = [
   { value: "non_hm", label: "Non-HM Only" },
 ];
 
+const MONO = "var(--font-mono)";
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [selectedStats, setSelectedStats] = useState(["eFG", "ARate"]);
@@ -135,11 +137,9 @@ export default function HomePage() {
     const filtersParam = activeFilters.length > 0
       ? encodeURIComponent(JSON.stringify(activeFilters))
       : "";
-
     const classesParam = selectedClasses.length < 4
       ? `&classes=${selectedClasses.join(",")}`
       : "";
-
     const portalParam = portalOnly ? "&portalOnly=true" : "";
     const hmParam = hmFilter ? `&hmFilter=${hmFilter}` : "";
     const top100Param = top100 ? "&top100=true" : "";
@@ -157,8 +157,8 @@ export default function HomePage() {
       <Header />
       <main className="container">
         <div className="home-hero">
-          <h1>Find Top Transfer Portal Players</h1>
-          <p>Select stats to find the best players by combined percentile score</p>
+          <h1>CBB Sorter</h1>
+          <p style={{ fontFamily: MONO }}>// select stats to rank players by combined percentile</p>
 
           {error && (
             <p className="error-msg" style={{ maxWidth: 600, margin: "0 auto 1rem" }}>
@@ -168,6 +168,7 @@ export default function HomePage() {
 
           <form className="search-form" onSubmit={handleSearch}>
 
+            {/* Stat selectors */}
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1rem" }}>
               {selectedStats.map((stat, index) => (
                 <div key={index} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -177,6 +178,7 @@ export default function HomePage() {
                       id={`stat-${index}`}
                       value={stat}
                       onChange={(e) => handleStatChange(index, e.target.value)}
+                      style={{ fontFamily: MONO }}
                     >
                       {STATS.map((s) => (
                         <option key={s.value} value={s.value}>{s.label}</option>
@@ -187,15 +189,16 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => removeStat(index)}
+                      aria-label="Remove stat"
                       style={{
-                        marginTop: "1.5rem",
                         background: "none",
                         border: "none",
                         color: "var(--error)",
                         fontSize: "1.25rem",
                         cursor: "pointer",
+                        paddingTop: "1.2rem",
+                        fontFamily: MONO,
                       }}
-                      aria-label={`Remove stat ${index + 1}`}
                     >
                       ✕
                     </button>
@@ -204,25 +207,39 @@ export default function HomePage() {
               ))}
             </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={addStat}
-              style={{ marginBottom: "1rem", width: "100%" }}
-            >
-              + Add Stat
-            </button>
+            {/* Add stat */}
+            {selectedStats.length < 6 && (
+              <button
+                type="button"
+                onClick={addStat}
+                style={{
+                  width: "100%",
+                  marginBottom: "1rem",
+                  padding: "0.5rem",
+                  background: "none",
+                  border: "1px dashed var(--border)",
+                  borderRadius: "var(--radius)",
+                  color: "var(--primary)",
+                  cursor: "pointer",
+                  fontFamily: MONO,
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                }}
+              >
+                + Add Stat
+              </button>
+            )}
 
-            <button
-              className="btn btn-primary"
-              type="submit"
-              style={{ marginBottom: "1rem" }}
-            >
+            {/* Find Players */}
+            <button type="submit" className="btn btn-primary" style={{ marginBottom: "1.25rem" }}>
               Find Players
             </button>
 
+            {/* Checkboxes */}
             <div className="form-group" style={{ marginBottom: "0.75rem" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontFamily: MONO, fontSize: "0.72rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                 <input
                   type="checkbox"
                   checked={filterMin}
@@ -233,7 +250,7 @@ export default function HomePage() {
             </div>
 
             <div className="form-group" style={{ marginBottom: "0.75rem" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontFamily: MONO, fontSize: "0.72rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                 <input
                   type="checkbox"
                   checked={portalOnly}
@@ -244,7 +261,7 @@ export default function HomePage() {
             </div>
 
             <div className="form-group" style={{ marginBottom: "1rem" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontFamily: MONO, fontSize: "0.72rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                 <input
                   type="checkbox"
                   checked={top100}
@@ -254,8 +271,9 @@ export default function HomePage() {
               </label>
             </div>
 
+            {/* Conference filter */}
             <div style={{ marginBottom: "1rem" }}>
-              <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.5rem", textAlign: "left" }}>
+              <p style={{ fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.5rem", textAlign: "left" }}>
                 Conference Filter
               </p>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -265,15 +283,18 @@ export default function HomePage() {
                     type="button"
                     onClick={() => setHmFilter(value)}
                     style={{
-                      padding: "0.35rem 0.9rem",
+                      padding: "0.3rem 0.85rem",
                       borderRadius: "999px",
                       border: "1px solid var(--border)",
                       cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
+                      fontFamily: MONO,
+                      fontWeight: 700,
+                      fontSize: "0.7rem",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
                       background: hmFilter === value ? "var(--primary)" : "transparent",
-                      color: hmFilter === value ? "#fff" : "var(--text)",
-                      transition: "all 200ms ease",
+                      color: hmFilter === value ? "#0d1117" : "var(--text)",
+                      transition: "all 180ms ease",
                     }}
                   >
                     {label}
@@ -282,17 +303,19 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Class filter */}
             <div style={{ marginBottom: "1rem" }}>
-              <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.5rem", textAlign: "left" }}>
+              <p style={{ fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.5rem", textAlign: "left" }}>
                 Class
                 {classesFiltered && (
                   <span style={{
                     marginLeft: "0.5rem",
                     background: "var(--primary)",
-                    color: "#fff",
+                    color: "#0d1117",
                     borderRadius: "999px",
                     padding: "0.1rem 0.5rem",
-                    fontSize: "0.75rem",
+                    fontSize: "0.65rem",
+                    fontFamily: MONO,
                   }}>
                     filtered
                   </span>
@@ -305,15 +328,18 @@ export default function HomePage() {
                     type="button"
                     onClick={() => toggleClass(cls)}
                     style={{
-                      padding: "0.35rem 0.9rem",
+                      padding: "0.3rem 0.85rem",
                       borderRadius: "999px",
                       border: "1px solid var(--border)",
                       cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
+                      fontFamily: MONO,
+                      fontWeight: 700,
+                      fontSize: "0.7rem",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
                       background: selectedClasses.includes(cls) ? "var(--primary)" : "transparent",
-                      color: selectedClasses.includes(cls) ? "#fff" : "var(--text)",
-                      transition: "all 200ms ease",
+                      color: selectedClasses.includes(cls) ? "#0d1117" : "var(--text)",
+                      transition: "all 180ms ease",
                     }}
                   >
                     {cls}
@@ -322,6 +348,7 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Advanced filters toggle */}
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
@@ -330,21 +357,26 @@ export default function HomePage() {
                 border: "1px solid var(--border)",
                 borderRadius: "var(--radius)",
                 padding: "0.5rem 1rem",
-                color: "var(--text)",
+                color: "var(--text-muted)",
                 cursor: "pointer",
                 width: "100%",
                 marginBottom: "1rem",
-                fontWeight: 600,
-                fontSize: "0.9rem",
+                fontFamily: MONO,
+                fontWeight: 700,
+                fontSize: "0.7rem",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "0.5rem",
+                transition: "all 180ms ease",
               }}
             >
               {showAdvanced ? "▲ Hide Advanced Filters" : `▼ Advanced Filters${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ""}`}
             </button>
 
+            {/* Advanced filter rows */}
             {showAdvanced && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
                 {advancedFilters.map((filter, index) => (
@@ -354,6 +386,7 @@ export default function HomePage() {
                       <select
                         value={filter.stat}
                         onChange={(e) => updateAdvancedFilter(index, "stat", e.target.value)}
+                        style={{ fontFamily: MONO }}
                       >
                         {STATS.map((s) => (
                           <option key={s.value} value={s.value}>{s.label}</option>
@@ -365,6 +398,7 @@ export default function HomePage() {
                       <select
                         value={filter.type}
                         onChange={(e) => updateAdvancedFilter(index, "type", e.target.value)}
+                        style={{ fontFamily: MONO }}
                       >
                         <option value="min">Min</option>
                         <option value="max">Max</option>
@@ -378,6 +412,7 @@ export default function HomePage() {
                         onChange={(e) => updateAdvancedFilter(index, "value", e.target.value)}
                         placeholder="0"
                         step="any"
+                        style={{ fontFamily: MONO }}
                       />
                     </div>
                     <button
@@ -390,6 +425,7 @@ export default function HomePage() {
                         fontSize: "1.25rem",
                         cursor: "pointer",
                         paddingBottom: "0.4rem",
+                        fontFamily: MONO,
                       }}
                       aria-label="Remove filter"
                     >
@@ -408,7 +444,11 @@ export default function HomePage() {
                     padding: "0.4rem",
                     color: "var(--text-muted)",
                     cursor: "pointer",
-                    fontSize: "0.875rem",
+                    fontFamily: MONO,
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
                   }}
                 >
                   + Add Filter
@@ -418,25 +458,27 @@ export default function HomePage() {
 
           </form>
 
+          {/* Trending */}
           {trending.length > 0 && (
             <div style={{
               background: "var(--surface)",
-              borderRadius: "var(--radius)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
               boxShadow: "var(--shadow)",
               padding: "1.25rem 1.5rem",
               maxWidth: "600px",
               margin: "1.5rem auto 0",
               textAlign: "left",
             }}>
-              <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.75rem", color: "var(--text)" }}>
-                🔥 Most Saved Players
+              <h2 style={{ fontFamily: MONO, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
+                // Most Saved Players
               </h2>
-              <ol style={{ paddingLeft: "1.25rem", margin: 0, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              <ol style={{ paddingLeft: "1.25rem", margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {trending.map((player) => (
-                  <li key={player.playerId} style={{ color: "var(--text)", fontSize: "0.95rem" }}>
+                  <li key={player.playerId} style={{ color: "var(--text)", fontFamily: MONO, fontSize: "0.8rem" }}>
                     {player.name}
-                    <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginLeft: "0.4rem" }}>
-                      {player.team}
+                    <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginLeft: "0.5rem" }}>
+                      — {player.team}
                     </span>
                   </li>
                 ))}
