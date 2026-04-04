@@ -96,7 +96,7 @@ function PlayerSearch({ label, onSelect, selected, excludeId }) {
           </div>
           <button
             onClick={() => onSelect(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: "1.1rem", lineHeight: 1, fontFamily: MONO }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: "1.1rem", lineHeight: 1, fontFamily: MONO, flexShrink: 0 }}
           >✕</button>
         </div>
       </div>
@@ -166,8 +166,8 @@ function StatRow({ stat, playerA, playerB }) {
 
   return (
     <div style={{
-      display: "grid", gridTemplateColumns: "1fr 160px 1fr",
-      gap: "0.5rem", alignItems: "center",
+      display: "grid", gridTemplateColumns: "1fr minmax(80px, 140px) 1fr",
+      gap: "0.35rem", alignItems: "center",
       padding: "0.5rem 0", borderBottom: "1px solid var(--border)",
     }}>
       {/* Left player */}
@@ -195,7 +195,11 @@ function StatRow({ stat, playerA, playerB }) {
       </div>
 
       {/* Stat label */}
-      <div style={{ textAlign: "center", fontFamily: MONO, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+      <div style={{
+        textAlign: "center", fontFamily: MONO, fontSize: "0.6rem",
+        color: "var(--text-muted)", fontWeight: 700,
+        letterSpacing: "0.06em", textTransform: "uppercase",
+      }}>
         {STAT_LABELS[stat] || stat}
       </div>
 
@@ -280,7 +284,7 @@ export default function ComparePage() {
     <>
       <Header />
       <main className="container" style={{ maxWidth: 860, padding: "1.5rem 1rem" }}>
-        <Link to="/" className="back-link">← Back to Search</Link>
+        <Link to="/" className="back-link">Back to Search</Link>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
           <h1 className="page-title" style={{ margin: 0 }}>Compare Players</h1>
@@ -294,7 +298,7 @@ export default function ComparePage() {
           <PlayerSearch label="Player 2" onSelect={handleSelectB} selected={playerB} excludeId={playerA?.id} />
         </div>
 
-        {loading && <p className="status-msg">Loading comparison…</p>}
+        {loading && <p className="status-msg">Loading...</p>}
         {error && <p className="status-msg error">{error}</p>}
 
         {data && (
@@ -345,7 +349,11 @@ export default function ComparePage() {
                   <h2 style={{ fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
                     // {group.label}
                   </h2>
-                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "0 1rem", boxShadow: "var(--shadow-sm)" }}>
+                  <div style={{
+                    background: "var(--surface)", border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-lg)", padding: "0 1rem",
+                    boxShadow: "var(--shadow-sm)", overflow: "hidden",
+                  }}>
                     {visibleStats.map(stat => (
                       <StatRow key={stat} stat={stat} playerA={data.playerA} playerB={data.playerB} />
                     ))}
