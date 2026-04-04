@@ -121,6 +121,7 @@ function buildPlayerEmbed(player, sharedBy = null, top100 = false) {
 
   const embed = new EmbedBuilder()
     .setTitle(`🏀 ${player.name}`)
+    .setURL(`https://cbb.up.railway.app/player/${player.id}`)
     .setColor(0x0052cc)
     .addFields(
       { name: "Team", value: player.team || "—", inline: true },
