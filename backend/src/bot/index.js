@@ -291,8 +291,11 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null, top100 = fal
     verdict = `🤝 Tied ${scoreA}–${scoreB}`;
   }
 
+  const compareUrl = `https://cbb.up.railway.app/compare?p1=${playerA.id}&p2=${playerB.id}`;
+
   const embed = new EmbedBuilder()
     .setTitle(`⚔️ ${playerA.name} vs ${playerB.name}`)
+    .setURL(compareUrl)
     .setColor(0x0052cc)
     .addFields(
       {
@@ -315,6 +318,7 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null, top100 = fal
     const footerParts = [
               top100 ? "Top 100 competition" : null,
               sharedBy ? `Shared by ${sharedBy}` : null,
+              "Full comparison at website",
           ].filter(Boolean);
           if (footerParts.length > 0) embed.setFooter({ text: footerParts.join(" · ") });
           return embed;
