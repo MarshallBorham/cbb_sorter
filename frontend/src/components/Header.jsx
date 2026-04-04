@@ -25,6 +25,7 @@ export default function Header() {
         <NavLink to="/" className="logo">🏀 Player Finder</NavLink>
         <nav className="nav" aria-label="Main navigation">
           <NavLink to="/" end className={({ isActive }) => isActive ? "active" : ""}>Search</NavLink>
+          <NavLink to="/compare" className={({ isActive }) => isActive ? "active" : ""}>Compare</NavLink>
           {!isGuest && (
             <NavLink to="/watchlist" className={({ isActive }) => isActive ? "active" : ""}>Watchlist</NavLink>
           )}
