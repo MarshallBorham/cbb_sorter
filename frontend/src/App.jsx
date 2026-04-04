@@ -26,7 +26,7 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
       <Route path="/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
       <Route path="/watchlist" element={<AuthOnlyRoute><WatchlistPage /></AuthOnlyRoute>} />
-      <Route path="/compare" element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
+      <Route path="/compare" element={<ComparePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
