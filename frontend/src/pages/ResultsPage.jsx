@@ -63,7 +63,7 @@ export default function ResultsPage() {
         setSaved((prev) => new Set(prev).add(player.id));
       }
     } catch {
-      // silently fail
+      // silently faill
     } finally {
       setSaving(null);
     }
