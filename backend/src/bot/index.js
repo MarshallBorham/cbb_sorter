@@ -3,6 +3,7 @@ import { Player } from "../models/Player.js";
 import { User } from "../models/User.js";
 import { BotWatchlist } from "../models/BotWatchlist.js";
 import { recordComparison } from "../utils/recordComparison.js";
+import { portalCommand, handlePortal } from "./portalCommand.js";
 
 const ALLOWED_GUILDS = new Set([
   "800261752540364840",
@@ -537,6 +538,7 @@ const playerCommand = new SlashCommandBuilder()
 
 const commands = [
   searchCommand,
+  portalCommand,
   playerCommand,
   new SlashCommandBuilder()
     .setName("watchlist")
@@ -751,7 +753,9 @@ export async function startBot() {
 
         await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
       }
-
+      else if (commandName === "portal") {
+                  await handlePortal(interaction);
+               }
       else if (commandName === "remove") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
