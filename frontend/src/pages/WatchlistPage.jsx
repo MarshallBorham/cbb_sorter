@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import Header from "../components/Header.jsx";
-import PlayerModal from "../components/PlayerModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const MONO = "var(--font-mono)";
@@ -20,7 +19,6 @@ export default function WatchlistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [removing, setRemoving] = useState(null);
-  const [modalPlayerId, setModalPlayerId] = useState(null);
 
   useEffect(() => {
     async function fetchWatchlist() {
@@ -95,20 +93,16 @@ export default function WatchlistPage() {
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem" }}>
                     <div>
-                      <button
-                        onClick={() => setModalPlayerId(entry.playerId)}
+                      <Link
+                        to={`/player/${entry.playerId}`}
                         style={{
-                          background: "none", border: "none", padding: 0,
-                          color: "var(--primary)", fontFamily: MONO,
-                          fontWeight: 700, cursor: "pointer",
-                          fontSize: "0.95rem", textAlign: "left",
-                          letterSpacing: "0.02em",
+                          fontFamily: MONO, fontWeight: 700, fontSize: "0.95rem",
+                          letterSpacing: "0.02em", color: "var(--primary)",
+                          textDecoration: "none",
                         }}
-                        onMouseEnter={e => e.currentTarget.style.color = "var(--primary-dark)"}
-                        onMouseLeave={e => e.currentTarget.style.color = "var(--primary)"}
                       >
                         {entry.name}
-                      </button>
+                      </Link>
                       <p style={{ margin: "0.25rem 0 0", fontFamily: MONO, color: "var(--text-muted)", fontSize: "0.72rem", letterSpacing: "0.04em" }}>
                         {entry.team} · {entry.position} · {entry.year}
                       </p>
@@ -146,13 +140,6 @@ export default function WatchlistPage() {
           </div>
         )}
       </main>
-
-      {modalPlayerId && (
-        <PlayerModal
-          playerId={modalPlayerId}
-          onClose={() => setModalPlayerId(null)}
-        />
-      )}
     </>
   );
 }
