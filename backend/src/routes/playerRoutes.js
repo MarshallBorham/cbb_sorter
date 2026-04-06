@@ -301,7 +301,7 @@ playerRouter.get("/leaderboard", async (req, res) => {
 
     const sorted = Object.entries(map)
       .sort((a, b) => b[1].wins - a[1].wins)
-      .slice(0, 50);
+      .slice(0, 500);
 
     const results = await Promise.all(
       sorted.map(async ([playerId, stats]) => {
