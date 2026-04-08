@@ -2,8 +2,39 @@
  * Renders the player profile radar chart as a PNG (matches web spider chart logic).
  */
 
-import { createCanvas } from "@napi-rs/canvas";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { createCanvas, GlobalFonts } from "@napi-rs/canvas";
 import { Player } from "../models/Player.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/** Bundled TTF — @napi-rs/canvas often has no fonts on minimal Linux (Railway); system-ui resolves to nothing. */
+const RADAR_FONT_FILE = path.join(__dirname, "../../fonts/Lato-Bold.ttf");
+const RADAR_FONT_FAMILY = "KPSorterRadar";
+
+let radarFontsRegistered = false;
+
+function ensureRadarFonts() {
+  if (radarFontsRegistered) return;
+  radarFontsRegistered = true;
+
+  if (fs.existsSync(RADAR_FONT_FILE)) {
+    const ok = GlobalFonts.registerFromPath(RADAR_FONT_FILE, RADAR_FONT_FAMILY);
+    if (!ok) console.warn("[playerRadarPng] registerFromPath failed:", RADAR_FONT_FILE);
+  } else {
+    console.warn("[playerRadarPng] Bundled font missing:", RADAR_FONT_FILE);
+  }
+
+  for (const dir of ["/usr/share/fonts", "/usr/share/fonts/truetype", "/usr/local/share/fonts"]) {
+    try {
+      if (fs.existsSync(dir)) GlobalFonts.loadFontsFromDir(dir);
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 const LOWER_IS_BETTER = new Set(["TO", "FC40", "DRTG"]);
 
@@ -92,6 +123,8 @@ async function getRadarStatPcts(player, top100) {
  * @returns {Promise<Buffer|null>}
  */
 export async function renderPlayerRadarPng(player, top100) {
+  ensureRadarFonts();
+
   const statPcts = await getRadarStatPcts(player, top100);
   if (!statPcts || Object.keys(statPcts).length === 0) return null;
 
@@ -176,8 +209,8 @@ export async function renderPlayerRadarPng(player, top100) {
     ctx.stroke();
   }
 
-  const nameFont = '700 16px system-ui, "Segoe UI", Arial, sans-serif';
-  const pctFont = '600 15px system-ui, "Segoe UI", Arial, sans-serif';
+  const nameFont = `700 16px ${RADAR_FONT_FAMILY}, sans-serif`;
+  const pctFont = `600 15px ${RADAR_FONT_FAMILY}, sans-serif`;
 
   for (let i = 0; i < n; i++) {
     const angle = angles[i];
@@ -191,7 +224,7 @@ export async function renderPlayerRadarPng(player, top100) {
     drawOutlinedText(ctx, pctLine, tx, ty + 14, "#8b949e", pctFont);
   }
 
-  ctx.font = '700 13px system-ui, "Segoe UI", Arial, sans-serif';
+  ctx.font = `700 13px ${RADAR_FONT_FAMILY}, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.lineJoin = "round";
