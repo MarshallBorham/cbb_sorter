@@ -2,6 +2,7 @@ import express from "express";
 import { Player } from "../models/Player.js";
 import { ComparisonResult } from "../models/ComparisonResult.js";
 import { recordComparison } from "../utils/recordComparison.js";
+import { PORTAL_CONFERENCE_MAP } from "../data/portalConferenceMap.js";
 
 export const playerRouter = express.Router();
 
@@ -122,24 +123,6 @@ function buildTeamDepth(players) {
   }
   return out;
 }
-
-// ── Conference map ────────────────────────────────────────────────────────────
-const PORTAL_CONFERENCE_MAP = {
-  ACC:             new Set(["California","Clemson","Duke","Florida State","Georgia Tech","Louisville","Miami","North Carolina","NC State","Notre Dame","Pittsburgh","SMU","Stanford","Syracuse","Virginia","Virginia Tech","Wake Forest","Boston College"]),
-  "Big Ten":       new Set(["Illinois","Indiana","Iowa","Maryland","Michigan","Michigan State","Minnesota","Nebraska","Northwestern","Ohio State","Oregon","Penn State","Purdue","Rutgers","UCLA","USC","Washington","Wisconsin"]),
-  "Big 12":        new Set(["Arizona","Arizona State","Baylor","BYU","Cincinnati","Colorado","Houston","Iowa State","Kansas","Kansas State","Oklahoma State","TCU","Texas Tech","UCF","Utah","West Virginia","Texas"]),
-  SEC:             new Set(["Alabama","Arkansas","Auburn","Florida","Georgia","Kentucky","LSU","Mississippi State","Missouri","Oklahoma","Ole Miss","South Carolina","Tennessee","Texas A&M","Vanderbilt"]),
-  "Big East":      new Set(["Butler","UConn","Creighton","DePaul","Georgetown","Marquette","Providence","St. John's","Seton Hall","Villanova","Xavier"]),
-  "Mountain West": new Set(["Air Force","Boise State","Colorado State","Fresno State","Hawaii","Nevada","New Mexico","San Diego State","San Jose State","UNLV","Utah State","Wyoming"]),
-  AAC:             new Set(["Charlotte","East Carolina","Florida Atlantic","Memphis","North Texas","Rice","South Florida","Temple","Tulane","Tulsa","UAB","UTSA","Wichita State"]),
-  "Atlantic 10":   new Set(["Davidson","Dayton","Duquesne","Fordham","George Mason","George Washington","La Salle","Loyola Chicago","Massachusetts","Rhode Island","Richmond","Saint Joseph's","Saint Louis","VCU"]),
-  WCC:             new Set(["Gonzaga","Loyola Marymount","Pacific","Pepperdine","Portland","Saint Mary's","San Diego","San Francisco","Santa Clara"]),
-  MVC:             new Set(["Bradley","Drake","Evansville","Illinois State","Indiana State","Missouri State","Northern Iowa","Southern Illinois","UIC","Valparaiso"]),
-  MAC:             new Set(["Akron","Ball State","Bowling Green","Buffalo","Central Michigan","Eastern Michigan","Kent State","Miami OH","Northern Illinois","Ohio","Toledo","Western Michigan"]),
-  "Sun Belt":      new Set(["App State","Arkansas State","Coastal Carolina","Georgia Southern","Georgia State","James Madison","Louisiana","Marshall","Old Dominion","South Alabama","Southern Miss","Texas State","Troy","ULM"]),
-  Ivy:             new Set(["Brown","Columbia","Cornell","Dartmouth","Harvard","Penn","Princeton","Yale"]),
-  Patriot:         new Set(["American","Army","Boston University","Bucknell","Colgate","Holy Cross","Lafayette","Lehigh","Loyola Maryland","Navy"]),
-};
 
 function calcPercentiles(stat, pool, statsField) {
   const values = pool.map((p) => (p[statsField]?.[stat] ?? 0)).sort((a, b) => a - b);
