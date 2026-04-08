@@ -44,14 +44,15 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+      {/* Public — listed before "/" and catch-all so they never get treated as unknown */}
       <Route path="/results" element={<ResultsPage />} />
-      <Route path="/watchlist" element={<AuthOnlyRoute><WatchlistPage /></AuthOnlyRoute>} />
       <Route path="/compare" element={<ComparePage />} />
       <Route path="/compare/leaderboard" element={<LeaderboardPage />} />
       <Route path="/player/:playerId" element={<PlayerPage />} />
       <Route path="/portal" element={<PortalPage />} />
       <Route path="/depth-chart" element={<DepthChartPage />} />
+      <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+      <Route path="/watchlist" element={<AuthOnlyRoute><WatchlistPage /></AuthOnlyRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

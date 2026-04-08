@@ -38,6 +38,12 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
+      <nav className="auth-public-nav" aria-label="Browse without signing in">
+        <Link to="/depth-chart">Depth charts</Link>
+        <Link to="/portal">Portal</Link>
+        <Link to="/compare">Compare</Link>
+        <Link to="/results">Results</Link>
+      </nav>
       <div className="auth-card">
         <h1>CBB Sorter</h1>
 
