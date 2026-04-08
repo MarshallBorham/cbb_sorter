@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createCanvas, GlobalFonts } from "@napi-rs/canvas";
 import { Player } from "../models/Player.js";
+import { RADAR_AREAS, ALL_RADAR_KEYS } from "../../../shared/radarAreas.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,19 +39,8 @@ function ensureRadarFonts() {
 
 const LOWER_IS_BETTER = new Set(["TO", "FC40", "DRTG"]);
 
-/** `name` = readable label in the image (matches web radar). */
-const RADAR_AXES = [
-  { name: "Close 2", keys: ["Close2P", "Close2PM"] },
-  { name: "3PT", keys: ["3P", "3P100"] },
-  { name: "Far 2", keys: ["Far2P", "Far2PM"] },
-  { name: "Stl + Blk", keys: ["Stl", "Blk"] },
-  { name: "Usage %", keys: ["Usg"] },
-  { name: "Shot %", keys: ["eFG", "TS"] },
-  { name: "Playmaking", keys: ["APG", "ARate"] },
-  { name: "Ball security", keys: ["TO"] },
-];
-
-const ALL_SOURCE_STATS = [...new Set(RADAR_AXES.flatMap((a) => a.keys))];
+/** Radar axes — sourced from shared module (same 8 areas as web radar). */
+const RADAR_AXES = RADAR_AREAS;
 
 function getStat(obj, field, key) {
   if (!obj) return undefined;
@@ -110,7 +100,7 @@ async function getRadarStatPcts(player, top100) {
   if (pool.length === 0) return null;
 
   const statPcts = {};
-  for (const s of ALL_SOURCE_STATS) {
+  for (const s of ALL_RADAR_KEYS) {
     const val = getStat(player, statsField, s);
     if (val != null && typeof val === "number") {
       statPcts[s] = calcPercentiles(s, pool, statsField)(val);
@@ -216,7 +206,7 @@ export async function renderPlayerRadarPng(player, top100) {
     const angle = angles[i];
     const { x, y } = polarXY(angle, labelR);
     const v = values[i];
-    const statName = RADAR_AXES[i].name;
+    const statName = RADAR_AXES[i].label;
     const pctLine = v != null ? `${v} pctl` : "—";
     const tx = cx + x;
     const ty = cy + y;

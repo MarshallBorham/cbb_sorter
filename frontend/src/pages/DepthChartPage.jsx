@@ -5,6 +5,86 @@ import Header from "../components/Header.jsx";
 const MONO = "var(--font-mono)";
 const SLOTS = ["PG", "SG", "SF", "PF", "C"];
 
+function TeamPercentileChart({ teamProfile }) {
+  if (!teamProfile?.areas?.length) return null;
+  const areas = teamProfile.areas.filter((a) => a.value != null);
+  if (areas.length === 0) return null;
+
+  const ariaLabel = `Team percentile profile: ${areas.map((a) => `${a.label} ${a.value}`).join(", ")}`;
+
+  return (
+    <div
+      role="img"
+      aria-label={ariaLabel}
+      style={{ marginTop: "1.1rem", borderTop: "1px solid var(--border)", paddingTop: "0.9rem" }}
+    >
+      <div style={{
+        fontFamily: MONO,
+        fontSize: "0.6rem",
+        fontWeight: 700,
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+        color: "var(--text-muted)",
+        marginBottom: "0.6rem",
+      }}>
+        Team percentile profile
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.38rem", maxWidth: 420 }}>
+        {teamProfile.areas.map((area) => (
+          <div key={area.id} style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
+            <span style={{
+              fontFamily: MONO,
+              fontSize: "0.63rem",
+              color: "var(--text-muted)",
+              width: 88,
+              flexShrink: 0,
+              textAlign: "right",
+              whiteSpace: "nowrap",
+            }}>
+              {area.label}
+            </span>
+            <div style={{
+              flex: 1,
+              background: "var(--border)",
+              borderRadius: 3,
+              height: 7,
+              overflow: "hidden",
+              minWidth: 60,
+            }}>
+              <div style={{
+                width: `${area.value ?? 0}%`,
+                height: "100%",
+                background: "var(--primary)",
+                borderRadius: 3,
+                opacity: area.value != null ? 1 : 0,
+              }} />
+            </div>
+            <span style={{
+              fontFamily: MONO,
+              fontSize: "0.63rem",
+              color: "var(--text-muted)",
+              width: 26,
+              textAlign: "right",
+              flexShrink: 0,
+            }}>
+              {area.value != null ? area.value : "—"}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p style={{
+        fontFamily: MONO,
+        fontSize: "0.58rem",
+        color: "var(--text-dim)",
+        margin: "0.45rem 0 0",
+        lineHeight: 1.4,
+      }}>
+        Mean of roster percentiles vs Min ≥ 15% pool
+      </p>
+    </div>
+  );
+}
+
 function heightClassLabel(height, year) {
   const h = height != null && String(height).trim() !== "" ? String(height).trim() : "—";
   const y = year != null && String(year).trim() !== "" ? String(year).trim() : "—";
@@ -183,6 +263,7 @@ export default function DepthChartPage() {
                     ))}
                   </div>
                 </div>
+                <TeamPercentileChart teamProfile={team.teamProfile} />
               </section>
             ))}
           </div>
