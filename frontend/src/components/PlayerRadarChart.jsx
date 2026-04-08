@@ -96,17 +96,17 @@ export default function PlayerRadarChart({ percentiles }) {
             cy="0"
             r={dataMaxR}
           >
-            <stop offset="0%" stopColor="#ff3b30" stopOpacity="0.96" />
-            <stop offset="12%" stopColor="#f85149" stopOpacity="0.94" />
-            <stop offset="22%" stopColor="#ff6b3d" stopOpacity="0.92" />
-            <stop offset="28%" stopColor="#f5a623" stopOpacity="0.9" />
-            <stop offset="32%" stopColor="#d8e632" stopOpacity="0.89" />
-            <stop offset="38%" stopColor="#56d364" stopOpacity="0.91" />
-            <stop offset="48%" stopColor="#3fb950" stopOpacity="0.92" />
-            <stop offset="60%" stopColor="#2f9e4c" stopOpacity="0.93" />
-            <stop offset="74%" stopColor="#1e6f38" stopOpacity="0.94" />
-            <stop offset="88%" stopColor="#124a27" stopOpacity="0.95" />
-            <stop offset="100%" stopColor="#082814" stopOpacity="0.96" />
+            <stop offset="0%" stopColor="#ff3b30" stopOpacity="0.82" />
+            <stop offset="12%" stopColor="#f85149" stopOpacity="0.72" />
+            <stop offset="22%" stopColor="#ff6b3d" stopOpacity="0.62" />
+            <stop offset="28%" stopColor="#f5a623" stopOpacity="0.58" />
+            <stop offset="32%" stopColor="#d8e632" stopOpacity="0.52" />
+            <stop offset="38%" stopColor="#56d364" stopOpacity="0.5" />
+            <stop offset="48%" stopColor="#3fb950" stopOpacity="0.52" />
+            <stop offset="60%" stopColor="#2f9e4c" stopOpacity="0.54" />
+            <stop offset="74%" stopColor="#1e6f38" stopOpacity="0.56" />
+            <stop offset="88%" stopColor="#124a27" stopOpacity="0.58" />
+            <stop offset="100%" stopColor="#082814" stopOpacity="0.64" />
           </radialGradient>
         </defs>
 
