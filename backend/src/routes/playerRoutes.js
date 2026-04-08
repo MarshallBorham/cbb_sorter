@@ -57,6 +57,14 @@ function canonicalPortalPositions(rawPos) {
   return PORTAL_POS_MAP[rawPos] ?? [String(rawPos).toUpperCase()];
 }
 
+/** Read stat from player.stats (plain object or Mongoose Map). */
+function statGet(p, key) {
+  const s = p.stats;
+  if (s == null) return undefined;
+  if (typeof s.get === "function") return s.get(key);
+  return s[key];
+}
+
 /** Height in inches from heightInches or Torvik-style "6-4" string */
 function playerHeightInches(p) {
   if (typeof p.heightInches === "number" && !Number.isNaN(p.heightInches)) return p.heightInches;
@@ -107,10 +115,13 @@ function buildTeamDepth(players) {
   }
   const out = {};
   for (const slot of DEPTH_SLOTS) {
+    // `Min` in DB is minute % (same as PlayerPage “Min %”).
     const arr = [...buckets[slot]].sort((a, b) => {
-      const minA = a.stats?.Min ?? -Infinity;
-      const minB = b.stats?.Min ?? -Infinity;
-      if (minB !== minA) return minB - minA;
+      const minA = statGet(a, "Min");
+      const minB = statGet(b, "Min");
+      const vA = minA != null ? Number(minA) : -Infinity;
+      const vB = minB != null ? Number(minB) : -Infinity;
+      if (vB !== vA) return vB - vA;
       return (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" });
     });
     out[slot] = arr.map((pl) => ({
