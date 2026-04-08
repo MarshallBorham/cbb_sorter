@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { getEnvVar } from "../getEnvVar.js";
+import { logEvent } from "../logEvent.js";
 
 export const authRouter = express.Router();
 
@@ -29,6 +30,8 @@ authRouter.post("/register", async (req, res) => {
     const user = new User({ username, passwordHash });
     await user.save();
 
+    await logEvent("register", { username });
+
     const token = signToken(user);
     res.status(201).json({ token, username: user.username });
   } catch (err) {
@@ -55,6 +58,8 @@ authRouter.post("/login", async (req, res) => {
     if (!valid) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
+
+    await logEvent("login", { username });
 
     const token = signToken(user);
     res.json({ token, username: user.username });
