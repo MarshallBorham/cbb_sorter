@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import Header from "../components/Header.jsx";
+import PlayerRadarChart from "../components/PlayerRadarChart.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const STAT_LABELS = {
@@ -245,6 +246,18 @@ export default function PlayerPage() {
                     Compare →
                   </Link>
                 </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: "1.25rem",
+                  paddingTop: "1.25rem",
+                  borderTop: "1px solid var(--border)",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <PlayerRadarChart percentiles={percentiles} />
               </div>
             </div>
 
