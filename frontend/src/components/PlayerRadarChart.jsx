@@ -34,7 +34,8 @@ function polarPoint(angle, radius) {
 }
 
 export default function PlayerRadarChart({ percentiles }) {
-  const fillId = `radarFill-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const bgHeatId = `radarHeat-${uid}`;
   const n = RADAR_AXES.length;
   const values = RADAR_AXES.map((axis) => blendPercentile(percentiles || {}, axis.keys));
 
@@ -44,6 +45,13 @@ export default function PlayerRadarChart({ percentiles }) {
   const labelR = 96;
 
   const angles = Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / n);
+
+  const outerOctagonPts = angles
+    .map((angle) => {
+      const p = polarPoint(angle, dataMaxR);
+      return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+    })
+    .join(" ");
 
   const dataPoints = angles.map((angle, i) => {
     const v = values[i];
@@ -81,18 +89,39 @@ export default function PlayerRadarChart({ percentiles }) {
         style={{ width: "min(100%, 280px)", height: "auto", overflow: "visible" }}
       >
         <defs>
-          <linearGradient id={fillId} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.08" />
-          </linearGradient>
+          <radialGradient
+            id={bgHeatId}
+            gradientUnits="userSpaceOnUse"
+            cx="0"
+            cy="0"
+            r={dataMaxR}
+          >
+            <stop offset="0%" stopColor="var(--error)" stopOpacity="0.82" />
+            <stop offset="18%" stopColor="var(--error)" stopOpacity="0.72" />
+            <stop offset="28%" stopColor="#e07850" stopOpacity="0.62" />
+            <stop offset="42%" stopColor="var(--warning)" stopOpacity="0.52" />
+            <stop offset="55%" stopColor="#9bc969" stopOpacity="0.48" />
+            <stop offset="68%" stopColor="#6bc77a" stopOpacity="0.52" />
+            <stop offset="78%" stopColor="var(--success)" stopOpacity="0.58" />
+            <stop offset="100%" stopColor="var(--success)" stopOpacity="0.64" />
+          </radialGradient>
         </defs>
+
+        <polygon
+          points={outerOctagonPts}
+          fill={`url(#${bgHeatId})`}
+          stroke="var(--border)"
+          strokeWidth="0.75"
+          strokeOpacity="0.9"
+        />
 
         {gridRings.map((t) => (
           <polygon
             key={t}
             fill="none"
-            stroke="var(--border)"
-            strokeWidth="0.5"
+            stroke="var(--bg)"
+            strokeWidth="1.1"
+            strokeOpacity="0.35"
             points={angles
               .map((angle) => {
                 const p = polarPoint(angle, t * dataMaxR);
@@ -111,16 +140,17 @@ export default function PlayerRadarChart({ percentiles }) {
               y1="0"
               x2={outer.x}
               y2={outer.y}
-              stroke="var(--border-bright)"
-              strokeWidth="0.6"
-              strokeOpacity="0.65"
+              stroke="var(--bg)"
+              strokeWidth="1"
+              strokeOpacity="0.42"
             />
           );
         })}
 
         {hasAny && (
           <polygon
-            fill={`url(#${fillId})`}
+            fill="var(--surface)"
+            fillOpacity={0.42}
             stroke="var(--primary)"
             strokeWidth="1.75"
             strokeLinejoin="round"
