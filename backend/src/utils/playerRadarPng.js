@@ -7,15 +7,16 @@ import { Player } from "../models/Player.js";
 
 const LOWER_IS_BETTER = new Set(["TO", "FC40", "DRTG"]);
 
+/** `name` = readable label in the image (matches web radar). */
 const RADAR_AXES = [
-  { short: "Close 2", keys: ["Close2P", "Close2PM"] },
-  { short: "3PT", keys: ["3P", "3P100"] },
-  { short: "Far 2", keys: ["Far2P", "Far2PM"] },
-  { short: "Stl/Blk", keys: ["Stl", "Blk"] },
-  { short: "Usg", keys: ["Usg"] },
-  { short: "Shot", keys: ["eFG", "TS"] },
-  { short: "Ast", keys: ["APG", "ARate"] },
-  { short: "TOV", keys: ["TO"] },
+  { name: "Close 2", keys: ["Close2P", "Close2PM"] },
+  { name: "3PT", keys: ["3P", "3P100"] },
+  { name: "Far 2", keys: ["Far2P", "Far2PM"] },
+  { name: "Stl + Blk", keys: ["Stl", "Blk"] },
+  { name: "Usage %", keys: ["Usg"] },
+  { name: "Shot %", keys: ["eFG", "TS"] },
+  { name: "Playmaking", keys: ["APG", "ARate"] },
+  { name: "Ball security", keys: ["TO"] },
 ];
 
 const ALL_SOURCE_STATS = [...new Set(RADAR_AXES.flatMap((a) => a.keys))];
@@ -54,6 +55,20 @@ function polarXY(angle, radius) {
   return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
 }
 
+/** Legible on dark bg — outline so labels never disappear with missing fonts. */
+function drawOutlinedText(ctx, text, x, y, fillStyle, font) {
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.miterLimit = 2;
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#0d1117";
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = fillStyle;
+  ctx.fillText(text, x, y);
+}
+
 async function getRadarStatPcts(player, top100) {
   const statsField = top100 ? "statsTop100" : "stats";
   const query = top100
@@ -84,12 +99,12 @@ export async function renderPlayerRadarPng(player, top100) {
   const values = RADAR_AXES.map((axis) => blendPercentile(statPcts, axis.keys));
   if (!values.some((v) => v != null)) return null;
 
-  const W = 560;
-  const H = 560;
+  const W = 700;
+  const H = 700;
   const cx = W / 2;
   const cy = H / 2;
-  const dataMaxR = 140;
-  const labelR = 188;
+  const dataMaxR = 128;
+  const labelR = 236;
   const angles = Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / n);
 
   const dataPoints = angles.map((angle, i) => {
@@ -161,29 +176,30 @@ export async function renderPlayerRadarPng(player, top100) {
     ctx.stroke();
   }
 
-  ctx.font = '600 13px "JetBrains Mono", "Consolas", "Courier New", monospace';
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  const nameFont = '700 16px system-ui, "Segoe UI", Arial, sans-serif';
+  const pctFont = '600 15px system-ui, "Segoe UI", Arial, sans-serif';
 
   for (let i = 0; i < n; i++) {
     const angle = angles[i];
     const { x, y } = polarXY(angle, labelR);
     const v = values[i];
-    const line1 = RADAR_AXES[i].short;
-    const line2 = v != null ? String(v) : "—";
+    const statName = RADAR_AXES[i].name;
+    const pctLine = v != null ? `${v} pctl` : "—";
     const tx = cx + x;
     const ty = cy + y;
-    ctx.fillStyle = "#7d8590";
-    ctx.fillText(line1, tx, ty - 8);
-    ctx.fillStyle = "#4d5566";
-    ctx.fillText(line2, tx, ty + 8);
+    drawOutlinedText(ctx, statName, tx, ty - 14, "#e6edf3", nameFont);
+    drawOutlinedText(ctx, pctLine, tx, ty + 14, "#8b949e", pctFont);
   }
 
-  ctx.font = '700 11px "JetBrains Mono", "Consolas", "Courier New", monospace';
-  ctx.fillStyle = "#7d8590";
+  ctx.font = '700 13px system-ui, "Segoe UI", Arial, sans-serif';
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText("Profile radar", 16, 14);
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#0d1117";
+  ctx.strokeText("Profile radar", 18, 16);
+  ctx.fillStyle = "#7d8590";
+  ctx.fillText("Profile radar", 18, 16);
 
   return canvas.toBuffer("image/png");
 }

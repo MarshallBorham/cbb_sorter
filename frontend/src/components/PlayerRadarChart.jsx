@@ -13,7 +13,7 @@ const RADAR_AXES = [
   { label: "Far 2", short: "Far 2", keys: ["Far2P", "Far2PM"] },
   { label: "Stl / Blk", short: "Stl/Blk", keys: ["Stl", "Blk"] },
   { label: "Usage", short: "Usg", keys: ["Usg"] },
-  { label: "Shot qual.", short: "Shot", keys: ["eFG", "TS"] },
+  { label: "Shot %", short: "Shot %", keys: ["eFG", "TS"] },
   { label: "Playmaking", short: "Ast", keys: ["APG", "ARate"] },
   { label: "Ball security", short: "TOV", keys: ["TO"] },
 ];
