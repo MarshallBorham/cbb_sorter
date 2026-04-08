@@ -1,7 +1,9 @@
 /**
- * Spider/radar chart: 8 wedges from percentile ranks (0–100),
+ * Spider/radar chart: 8 composite axes from percentile ranks (0–100),
  * same pool as compare API (Min ≥ 15%). TO uses backend-inverted percentile (high = low turnovers).
  */
+
+import { useId } from "react";
 
 const MONO = "var(--font-mono)";
 
@@ -31,56 +33,17 @@ function polarPoint(angle, radius) {
   };
 }
 
-/** Solid RGB from percentile: red (low) → yellow → green (high). No alpha. */
-/** Angular center of wedge between spokes prev and i (for label above that wedge). */
-function wedgeBisectorAngle(angles, i, n) {
-  const prev = (i - 1 + n) % n;
-  const s = Math.sin(angles[prev]) + Math.sin(angles[i]);
-  const c = Math.cos(angles[prev]) + Math.cos(angles[i]);
-  return Math.atan2(s, c);
-}
-
-function colorFromPercentile(p) {
-  const t = (p == null ? 0 : Math.max(0, Math.min(100, p))) / 100;
-  const c0 = [255, 59, 48];
-  const c1 = [245, 166, 35];
-  const c2 = [26, 127, 55];
-  let r;
-  let g;
-  let b;
-  if (t < 0.45) {
-    const u = t / 0.45;
-    r = Math.round(c0[0] + (c1[0] - c0[0]) * u);
-    g = Math.round(c0[1] + (c1[1] - c0[1]) * u);
-    b = Math.round(c0[2] + (c1[2] - c0[2]) * u);
-  } else {
-    const u = (t - 0.45) / 0.55;
-    r = Math.round(c1[0] + (c2[0] - c1[0]) * u);
-    g = Math.round(c1[1] + (c2[1] - c1[1]) * u);
-    b = Math.round(c1[2] + (c2[2] - c1[2]) * u);
-  }
-  const h = (x) => x.toString(16).padStart(2, "0");
-  return `#${h(r)}${h(g)}${h(b)}`;
-}
-
 export default function PlayerRadarChart({ percentiles }) {
+  const fillId = `radarFill-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const n = RADAR_AXES.length;
   const values = RADAR_AXES.map((axis) => blendPercentile(percentiles || {}, axis.keys));
 
   const hasAny = values.some((v) => v != null);
   const dataMaxR = 78;
   const gridRings = [0.25, 0.5, 0.75, 1];
-  /** Outside the plot; labels sit centered on each wedge (mid-angle), not on spoke alignment hacks. */
-  const labelR = 100;
+  const labelR = 96;
 
   const angles = Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / n);
-
-  const outerOctagonPts = angles
-    .map((angle) => {
-      const p = polarPoint(angle, dataMaxR);
-      return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
-    })
-    .join(" ");
 
   const dataPoints = angles.map((angle, i) => {
     const v = values[i];
@@ -117,21 +80,19 @@ export default function PlayerRadarChart({ percentiles }) {
         aria-label="Player percentile profile across eight stat categories"
         style={{ width: "min(100%, 280px)", height: "auto", overflow: "visible" }}
       >
-        <polygon points={outerOctagonPts} fill="var(--surface)" stroke="none" />
-
-        <polygon
-          points={outerOctagonPts}
-          fill="none"
-          stroke="var(--border)"
-          strokeWidth="0.75"
-        />
+        <defs>
+          <linearGradient id={fillId} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.08" />
+          </linearGradient>
+        </defs>
 
         {gridRings.map((t) => (
           <polygon
             key={t}
             fill="none"
-            stroke="var(--border-bright)"
-            strokeWidth="0.65"
+            stroke="var(--border)"
+            strokeWidth="0.5"
             points={angles
               .map((angle) => {
                 const p = polarPoint(angle, t * dataMaxR);
@@ -151,42 +112,35 @@ export default function PlayerRadarChart({ percentiles }) {
               x2={outer.x}
               y2={outer.y}
               stroke="var(--border-bright)"
-              strokeWidth="0.85"
+              strokeWidth="0.6"
+              strokeOpacity="0.65"
             />
           );
         })}
 
-        {hasAny &&
-          Array.from({ length: n }, (__, i) => {
-            const prev = (i - 1 + n) % n;
-            const a = dataPoints[prev];
-            const b = dataPoints[i];
-            const fill = colorFromPercentile(values[i]);
-            const d = `M 0 0 L ${a.x.toFixed(2)} ${a.y.toFixed(2)} L ${b.x.toFixed(2)} ${b.y.toFixed(2)} Z`;
-            return <path key={`wedge-${RADAR_AXES[i].label}`} d={d} fill={fill} />;
-          })}
-
         {hasAny && (
           <polygon
-            points={polygonPts}
-            fill="none"
+            fill={`url(#${fillId})`}
             stroke="var(--primary)"
             strokeWidth="1.75"
             strokeLinejoin="round"
+            points={polygonPts}
           />
         )}
 
-        {angles.map((_, i) => {
-          const labelAngle = wedgeBisectorAngle(angles, i, n);
-          const p = polarPoint(labelAngle, labelR);
+        {angles.map((angle, i) => {
+          const p = polarPoint(angle, labelR);
           const v = values[i];
+          const anchor =
+            Math.abs(p.x) < 4 ? "middle" : p.x > 0 ? "start" : "end";
+          const baseline = p.y > 12 ? "hanging" : p.y < -12 ? "auto" : "middle";
           return (
             <text
               key={`lbl-${RADAR_AXES[i].label}`}
               x={p.x}
               y={p.y}
-              textAnchor="middle"
-              dominantBaseline="middle"
+              textAnchor={anchor}
+              dominantBaseline={baseline}
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "7px",
