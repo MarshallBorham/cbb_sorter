@@ -27,6 +27,7 @@ export default function Header() {
           <NavLink to="/" end className={({ isActive }) => isActive ? "active" : ""}>Search</NavLink>
           <NavLink to="/compare" className={({ isActive }) => isActive ? "active" : ""}>Compare</NavLink>
           <NavLink to="/portal" className={({ isActive }) => isActive ? "active" : ""}>Portal</NavLink>
+          <NavLink to="/depth-chart" className={({ isActive }) => isActive ? "active" : ""}>Depth chart</NavLink>
           {!isGuest && (
             <NavLink to="/watchlist" className={({ isActive }) => isActive ? "active" : ""}>Watchlist</NavLink>
           )}

@@ -9,6 +9,7 @@ import ComparePage from "./pages/ComparePage.jsx";
 import PlayerPage from "./pages/PlayerPage.jsx";
 import LeaderboardPage from "./pages/LeaderboardPage.jsx";
 import PortalPage from "./pages/PortalPage.jsx";
+import DepthChartPage from "./pages/DepthChartPage.jsx";
 
 
 function ProtectedRoute({ children }) {
@@ -33,6 +34,7 @@ export default function App() {
       <Route path="/compare/leaderboard" element={<LeaderboardPage />} />
       <Route path="/player/:playerId" element={<PlayerPage />} />
       <Route path="/portal" element={<PortalPage />} />
+      <Route path="/depth-chart" element={<DepthChartPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

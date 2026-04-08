@@ -47,6 +47,40 @@ const PORTAL_POS_MAP = {
   "Center":     ["C"],
 };
 
+const DEPTH_SLOTS = ["PG", "SG", "SF", "PF", "C"];
+
+function canonicalPortalPositions(rawPos) {
+  if (!rawPos) return [];
+  return PORTAL_POS_MAP[rawPos] ?? [String(rawPos).toUpperCase()];
+}
+
+function buildTeamDepth(players) {
+  const buckets = { PG: [], SG: [], SF: [], PF: [], C: [] };
+  for (const p of players) {
+    const slots = canonicalPortalPositions(p.position);
+    for (const slot of DEPTH_SLOTS) {
+      if (slots.includes(slot)) buckets[slot].push(p);
+    }
+  }
+  const out = {};
+  for (const slot of DEPTH_SLOTS) {
+    const arr = [...buckets[slot]].sort((a, b) => {
+      const minA = a.stats?.Min ?? -Infinity;
+      const minB = b.stats?.Min ?? -Infinity;
+      if (minB !== minA) return minB - minA;
+      return (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" });
+    });
+    out[slot] = arr.map((pl) => ({
+      id: pl.id,
+      name: pl.name,
+      inPortal: !!pl.inPortal,
+      year: pl.year,
+      position: pl.position,
+    }));
+  }
+  return out;
+}
+
 // ── Conference map ────────────────────────────────────────────────────────────
 const PORTAL_CONFERENCE_MAP = {
   ACC:             new Set(["California","Clemson","Duke","Florida State","Georgia Tech","Louisville","Miami","North Carolina","NC State","Notre Dame","Pittsburgh","SMU","Stanford","Syracuse","Virginia","Virginia Tech","Wake Forest","Boston College"]),
@@ -366,7 +400,7 @@ playerRouter.get("/portal", async (req, res) => {
     // Position filter
     if (posFilter.length) {
       players = players.filter(p => {
-        const canonical = PORTAL_POS_MAP[p.position] ?? (p.position ? [p.position.toUpperCase()] : []);
+        const canonical = canonicalPortalPositions(p.position);
         return canonical.some(c => posFilter.includes(c));
       });
     }
@@ -407,6 +441,41 @@ playerRouter.get("/portal", async (req, res) => {
     res.json({ players: result, conferences: Object.keys(PORTAL_CONFERENCE_MAP) });
   } catch (err) {
     console.error("Portal route error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /api/players/depth-chart?conference=ACC — rosters by slot (portal position map) ──
+playerRouter.get("/depth-chart", async (req, res) => {
+  try {
+    const conference = req.query.conference;
+    if (!conference || !PORTAL_CONFERENCE_MAP[conference]) {
+      return res.status(400).json({ error: "Invalid or missing conference" });
+    }
+
+    const teamNames = [...PORTAL_CONFERENCE_MAP[conference]].sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
+
+    const players = await Player.find({ team: { $in: teamNames } }).lean();
+    const byTeam = new Map(teamNames.map((t) => [t, []]));
+    for (const p of players) {
+      const list = byTeam.get(p.team);
+      if (list) list.push(p);
+    }
+
+    const teams = teamNames.map((name) => ({
+      name,
+      depth: buildTeamDepth(byTeam.get(name)),
+    }));
+
+    const conferences = Object.keys(PORTAL_CONFERENCE_MAP).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
+
+    res.json({ conference, conferences, teams });
+  } catch (err) {
+    console.error("Depth chart route error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
