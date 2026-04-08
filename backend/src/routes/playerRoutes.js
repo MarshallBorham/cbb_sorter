@@ -7,6 +7,7 @@ import {
   resolveCanonicalTeamName,
   expandQueryTeamNames,
 } from "../data/portalConferenceMap.js";
+import { buildTeamDepth } from "../utils/depthChart.js";
 
 export const playerRouter = express.Router();
 
@@ -52,102 +53,9 @@ const PORTAL_POS_MAP = {
   "Center":     ["C"],
 };
 
-const DEPTH_SLOTS = ["PG", "SG", "SF", "PF", "C"];
-const DEPTH_HEIGHT_6_4 = 6 * 12 + 4; // 6'4" — Wing G: shorter → SG, else SF
-const DEPTH_HEIGHT_6_8 = 6 * 12 + 8; // 6'8" — Wing F: shorter → SF, else PF
-
 function canonicalPortalPositions(rawPos) {
   if (!rawPos) return [];
   return PORTAL_POS_MAP[rawPos] ?? [String(rawPos).toUpperCase()];
-}
-
-/** Read stat from player.stats (plain object or Mongoose Map). */
-function statGet(p, key) {
-  const s = p.stats;
-  if (s == null) return undefined;
-  if (typeof s.get === "function") return s.get(key);
-  return s[key];
-}
-
-/** Height in inches from heightInches or Torvik-style "6-4" string */
-function playerHeightInches(p) {
-  if (typeof p.heightInches === "number" && !Number.isNaN(p.heightInches)) return p.heightInches;
-  if (!p.height) return null;
-  const match = String(p.height).match(/(\d+)-(\d+)/);
-  if (match) return parseInt(match[1], 10) * 12 + parseInt(match[2], 10);
-  return null;
-}
-
-/** Torvik-style height string for API/UI */
-function playerHeightDisplay(p) {
-  if (p.height != null && String(p.height).trim() !== "") return String(p.height).trim();
-  const inches = playerHeightInches(p);
-  if (inches == null) return null;
-  const ft = Math.floor(inches / 12);
-  const inn = inches % 12;
-  return `${ft}-${inn}`;
-}
-
-/** One slot per player for depth chart (distinct from portal multi-slot filter) */
-function depthChartSlotForPlayer(p) {
-  const pos = p.position;
-  if (!pos) return null;
-  const h = playerHeightInches(p);
-
-  switch (pos) {
-    case "Pure PG":
-    case "Scoring PG":
-      return "PG";
-    case "Combo G":
-      return "SG";
-    case "Wing G":
-      if (h == null) return "SG";
-      return h < DEPTH_HEIGHT_6_4 ? "SG" : "SF";
-    case "Wing F":
-      if (h == null) return "SF";
-      return h < DEPTH_HEIGHT_6_8 ? "SF" : "PF";
-    case "Stretch 4":
-      return "PF";
-    case "PF/CF":
-    case "PF/C":
-      return "PF";
-    case "Center":
-      return "C";
-    default: {
-      const u = String(pos).toUpperCase();
-      if (["PG", "SG", "SF", "PF", "C"].includes(u)) return u;
-      return null;
-    }
-  }
-}
-
-function buildTeamDepth(players) {
-  const buckets = { PG: [], SG: [], SF: [], PF: [], C: [] };
-  for (const p of players) {
-    const slot = depthChartSlotForPlayer(p);
-    if (slot && buckets[slot]) buckets[slot].push(p);
-  }
-  const out = {};
-  for (const slot of DEPTH_SLOTS) {
-    // `Min` in DB is minute % (same as PlayerPage “Min %”).
-    const arr = [...buckets[slot]].sort((a, b) => {
-      const minA = statGet(a, "Min");
-      const minB = statGet(b, "Min");
-      const vA = minA != null ? Number(minA) : -Infinity;
-      const vB = minB != null ? Number(minB) : -Infinity;
-      if (vB !== vA) return vB - vA;
-      return (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" });
-    });
-    out[slot] = arr.map((pl) => ({
-      id: pl.id,
-      name: pl.name,
-      inPortal: !!pl.inPortal,
-      year: pl.year,
-      height: playerHeightDisplay(pl),
-      position: pl.position,
-    }));
-  }
-  return out;
 }
 
 function calcPercentiles(stat, pool, statsField) {

@@ -4,6 +4,7 @@ import { User } from "../models/User.js";
 import { BotWatchlist } from "../models/BotWatchlist.js";
 import { recordComparison } from "../utils/recordComparison.js";
 import { portalCommand, handlePortal } from "./portalCommand.js";
+import { depthChartCommand, handleDepthChart } from "./depthChartCommand.js";
 import { resolveCanonicalTeamName } from "../data/portalConferenceMap.js";
 
 const ALLOWED_GUILDS = new Set([
@@ -540,6 +541,7 @@ const playerCommand = new SlashCommandBuilder()
 const commands = [
   searchCommand,
   portalCommand,
+  depthChartCommand,
   playerCommand,
   new SlashCommandBuilder()
     .setName("watchlist")
@@ -755,8 +757,12 @@ export async function startBot() {
         await interaction.editReply(`✅ Saved **${player.name}** (${player.team})\nStats: ${statStr}`);
       }
       else if (commandName === "portal") {
-                  await handlePortal(interaction);
-               }
+        await handlePortal(interaction);
+      }
+
+      else if (commandName === "depth-chart") {
+        await handleDepthChart(interaction);
+      }
       else if (commandName === "remove") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
