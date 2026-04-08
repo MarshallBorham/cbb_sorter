@@ -4,19 +4,11 @@
  */
 
 import { useId } from "react";
+import { RADAR_AREAS } from "@shared/radarAreas.js";
 
 const MONO = "var(--font-mono)";
 
-const RADAR_AXES = [
-  { label: "Close 2", short: "Close 2", keys: ["Close2P", "Close2PM"] },
-  { label: "3PT", short: "3PT", keys: ["3P", "3P100"] },
-  { label: "Far 2", short: "Far 2", keys: ["Far2P", "Far2PM"] },
-  { label: "Stl / Blk", short: "Stl/Blk", keys: ["Stl", "Blk"] },
-  { label: "Usage", short: "Usg", keys: ["Usg"] },
-  { label: "Shot %", short: "Shot %", keys: ["eFG", "TS"] },
-  { label: "Playmaking", short: "Ast", keys: ["APG", "ARate"] },
-  { label: "Ball security", short: "TOV", keys: ["TO"] },
-];
+const RADAR_AXES = RADAR_AREAS;
 
 function blendPercentile(statPcts, keys) {
   const vals = keys

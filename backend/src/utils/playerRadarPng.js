@@ -206,7 +206,7 @@ export async function renderPlayerRadarPng(player, top100) {
     const angle = angles[i];
     const { x, y } = polarXY(angle, labelR);
     const v = values[i];
-    const statName = RADAR_AXES[i].name;
+    const statName = RADAR_AXES[i].label;
     const pctLine = v != null ? `${v} pctl` : "—";
     const tx = cx + x;
     const ty = cy + y;
