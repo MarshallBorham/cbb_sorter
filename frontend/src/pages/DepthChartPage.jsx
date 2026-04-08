@@ -51,7 +51,7 @@ export default function DepthChartPage() {
           <div>
             <h1 className="page-title" style={{ margin: 0 }}>Depth charts</h1>
             <p style={{ fontFamily: MONO, color: "var(--text-muted)", fontSize: "0.72rem", letterSpacing: "0.04em", margin: "0.25rem 0 0" }}>
-              // {loading ? "Loading…" : `${teams.length} teams · positions match portal mapping · sorted by minutes`}
+              // {loading ? "Loading…" : `${teams.length} teams · one slot per player · sorted by minutes`}
             </p>
           </div>
           <div>

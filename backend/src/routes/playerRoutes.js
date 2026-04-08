@@ -48,19 +48,61 @@ const PORTAL_POS_MAP = {
 };
 
 const DEPTH_SLOTS = ["PG", "SG", "SF", "PF", "C"];
+const DEPTH_HEIGHT_6_4 = 6 * 12 + 4; // 6'4" — Wing G: shorter → SG, else SF
+const DEPTH_HEIGHT_6_8 = 6 * 12 + 8; // 6'8" — Wing F: shorter → SF, else PF
 
 function canonicalPortalPositions(rawPos) {
   if (!rawPos) return [];
   return PORTAL_POS_MAP[rawPos] ?? [String(rawPos).toUpperCase()];
 }
 
+/** Height in inches from heightInches or Torvik-style "6-4" string */
+function playerHeightInches(p) {
+  if (typeof p.heightInches === "number" && !Number.isNaN(p.heightInches)) return p.heightInches;
+  if (!p.height) return null;
+  const match = String(p.height).match(/(\d+)-(\d+)/);
+  if (match) return parseInt(match[1], 10) * 12 + parseInt(match[2], 10);
+  return null;
+}
+
+/** One slot per player for depth chart (distinct from portal multi-slot filter) */
+function depthChartSlotForPlayer(p) {
+  const pos = p.position;
+  if (!pos) return null;
+  const h = playerHeightInches(p);
+
+  switch (pos) {
+    case "Pure PG":
+    case "Scoring PG":
+      return "PG";
+    case "Combo G":
+      return "SG";
+    case "Wing G":
+      if (h == null) return "SG";
+      return h < DEPTH_HEIGHT_6_4 ? "SG" : "SF";
+    case "Wing F":
+      if (h == null) return "SF";
+      return h < DEPTH_HEIGHT_6_8 ? "SF" : "PF";
+    case "Stretch 4":
+      return "PF";
+    case "PF/CF":
+    case "PF/C":
+      return "PF";
+    case "Center":
+      return "C";
+    default: {
+      const u = String(pos).toUpperCase();
+      if (["PG", "SG", "SF", "PF", "C"].includes(u)) return u;
+      return null;
+    }
+  }
+}
+
 function buildTeamDepth(players) {
   const buckets = { PG: [], SG: [], SF: [], PF: [], C: [] };
   for (const p of players) {
-    const slots = canonicalPortalPositions(p.position);
-    for (const slot of DEPTH_SLOTS) {
-      if (slots.includes(slot)) buckets[slot].push(p);
-    }
+    const slot = depthChartSlotForPlayer(p);
+    if (slot && buckets[slot]) buckets[slot].push(p);
   }
   const out = {};
   for (const slot of DEPTH_SLOTS) {
