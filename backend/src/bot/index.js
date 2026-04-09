@@ -16,6 +16,13 @@ import { portalCommand, handlePortal } from "./portalCommand.js";
 import { depthChartCommand, handleDepthChart } from "./depthChartCommand.js";
 import { resolveCanonicalTeamName } from "../data/portalConferenceMap.js";
 import { renderPlayerRadarPng } from "../utils/playerRadarPng.js";
+import {
+  findSimilarByZDistance,
+  distanceToSimilarityPercent,
+  SIMILARITY_STATS,
+} from "../utils/playerSimilarity.js";
+
+const WEB_APP_BASE = "https://cbb.up.railway.app";
 
 const ALLOWED_GUILDS = new Set([
   "800261752540364840",
@@ -135,7 +142,7 @@ function buildPlayerEmbed(player, sharedBy = null, top100 = false) {
 
   const embed = new EmbedBuilder()
     .setTitle(`🏀 ${player.name}`)
-    .setURL(`https://cbb.up.railway.app/player/${player.id}`)
+    .setURL(`${WEB_APP_BASE}/player/${player.id}`)
     .setColor(0x0052cc)
     .addFields(
       { name: "Team", value: player.team || "—", inline: true },
@@ -160,8 +167,47 @@ function buildPlayerEmbed(player, sharedBy = null, top100 = false) {
   return embed;
 }
 
+/** Safe text inside Discord markdown `[label](url)` (avoid `]` / `)` breaking the link). */
+function discordLinkLabel(text) {
+  return String(text ?? "").replace(/]/g, "").replace(/\)/g, "");
+}
+
+function comparePageUrl(playerIdA, playerIdB) {
+  const p1 = encodeURIComponent(playerIdA);
+  const p2 = encodeURIComponent(playerIdB);
+  return `${WEB_APP_BASE}/compare?p1=${p1}&p2=${p2}`;
+}
+
+async function addSimilarPlayersField(embed, targetPlayer) {
+  try {
+    const pool = await Player.find({ "stats.Min": { $gte: 15 } }).lean();
+    if (pool.length < 2) return;
+
+    const matches = findSimilarByZDistance(targetPlayer, pool, {
+      limit: 3,
+      stats: SIMILARITY_STATS,
+    });
+    if (matches.length === 0) return;
+
+    const dims = SIMILARITY_STATS.length;
+    const lines = matches.map(({ player: p, distance }) => {
+      const pct = distanceToSimilarityPercent(distance, dims);
+      const url = comparePageUrl(targetPlayer.id, p.id);
+      return `· [${discordLinkLabel(p.name)}](${url}) · ${pct}%`;
+    });
+
+    embed.addFields({
+      name: "Similar players",
+      value: lines.join("\n"),
+    });
+  } catch (e) {
+    console.error("addSimilarPlayersField:", e);
+  }
+}
+
 async function editReplyWithPlayerEmbedAndRadar(interaction, player, sharedBy, top100) {
   const embed = buildPlayerEmbed(player, sharedBy, top100);
+  await addSimilarPlayersField(embed, player);
   const payload = { embeds: [embed] };
   try {
     const buf = await renderPlayerRadarPng(player, top100);
