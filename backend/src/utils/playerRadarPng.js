@@ -83,7 +83,7 @@ function drawOutlinedText(ctx, text, x, y, fillStyle, font) {
   ctx.textBaseline = "middle";
   ctx.lineJoin = "round";
   ctx.miterLimit = 2;
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 6;
   ctx.strokeStyle = "#0d1117";
   ctx.strokeText(text, x, y);
   ctx.fillStyle = fillStyle;
@@ -127,7 +127,7 @@ export async function renderPlayerRadarPng(player, top100) {
   const cx = W / 2;
   const cy = H / 2;
   const dataMaxR = 128;
-  const labelR = 236;
+  const labelR = 252;
   const angles = Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / n);
 
   const dataPoints = angles.map((angle, i) => {
@@ -199,8 +199,9 @@ export async function renderPlayerRadarPng(player, top100) {
     ctx.stroke();
   }
 
-  const nameFont = `700 16px ${RADAR_FONT_FAMILY}, sans-serif`;
-  const pctFont = `600 15px ${RADAR_FONT_FAMILY}, sans-serif`;
+  const nameFont = `700 24px ${RADAR_FONT_FAMILY}, sans-serif`;
+  const pctFont = `600 23px ${RADAR_FONT_FAMILY}, sans-serif`;
+  const labelLineGap = 21;
 
   for (let i = 0; i < n; i++) {
     const angle = angles[i];
@@ -210,15 +211,15 @@ export async function renderPlayerRadarPng(player, top100) {
     const pctLine = v != null ? `${v} pctl` : "—";
     const tx = cx + x;
     const ty = cy + y;
-    drawOutlinedText(ctx, statName, tx, ty - 14, "#e6edf3", nameFont);
-    drawOutlinedText(ctx, pctLine, tx, ty + 14, "#8b949e", pctFont);
+    drawOutlinedText(ctx, statName, tx, ty - labelLineGap, "#e6edf3", nameFont);
+    drawOutlinedText(ctx, pctLine, tx, ty + labelLineGap, "#8b949e", pctFont);
   }
 
-  ctx.font = `700 13px ${RADAR_FONT_FAMILY}, sans-serif`;
+  ctx.font = `700 20px ${RADAR_FONT_FAMILY}, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.lineJoin = "round";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 5;
   ctx.strokeStyle = "#0d1117";
   ctx.strokeText("Profile radar", 18, 16);
   ctx.fillStyle = "#7d8590";
