@@ -109,6 +109,8 @@ export default function PlayerPage() {
   const [commentsErr, setCommentsErr] = useState("");
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
+  const [similar, setSimilar] = useState(null);
+  const [similarDimensions, setSimilarDimensions] = useState(20);
   const canComment = !!token && !isGuest;
 
   useEffect(() => {
@@ -135,6 +137,32 @@ export default function PlayerPage() {
       }
     }
     load();
+  }, [playerId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSimilar(null);
+    async function loadSimilar() {
+      try {
+        const res = await fetch(
+          `/api/players/${encodeURIComponent(playerId)}/similar?limit=12`
+        );
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) {
+          setSimilar([]);
+          return;
+        }
+        setSimilar(Array.isArray(data.similar) ? data.similar : []);
+        if (typeof data.dimensions === "number") setSimilarDimensions(data.dimensions);
+      } catch {
+        if (!cancelled) setSimilar([]);
+      }
+    }
+    if (playerId) loadSimilar();
+    return () => {
+      cancelled = true;
+    };
   }, [playerId]);
 
   useEffect(() => {
@@ -291,6 +319,92 @@ export default function PlayerPage() {
                 </div>
               );
             })}
+
+            {/* Similar players (z-scored Euclidean vs Min ≥ 15% pool) */}
+            <div style={{ marginBottom: "2rem" }}>
+              <h2 style={{
+                fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.1em",
+                color: "var(--text-muted)", marginBottom: "0.5rem",
+              }}>
+                // Similar players
+              </h2>
+              <p style={{
+                fontFamily: MONO,
+                fontSize: "0.65rem",
+                color: "var(--text-dim)",
+                margin: "0 0 0.85rem",
+                lineHeight: 1.45,
+                letterSpacing: "0.02em",
+              }}>
+                Euclidean distance in z-score space ({similarDimensions} stats: scoring, shooting, usage, rebounding,
+                playmaking, turnovers, stocks, BPM, key percentages, FT rate, Min). Pool: players with
+                Min ≥ 15%. Lower distance = closer statistical profile.
+              </p>
+              {similar === null && (
+                <p style={{ fontFamily: MONO, fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                  Loading similar players…
+                </p>
+              )}
+              {similar !== null && similar.length === 0 && (
+                <p style={{ fontFamily: MONO, fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                  No matches (pool too small or data unavailable).
+                </p>
+              )}
+              {similar != null && similar.length > 0 && (
+                <ul style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                }}>
+                  {similar.map((s) => (
+                    <li
+                      key={s.id}
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "baseline",
+                        justifyContent: "space-between",
+                        gap: "0.35rem 0.75rem",
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--radius)",
+                        padding: "0.55rem 0.75rem",
+                      }}
+                    >
+                      <Link
+                        to={`/player/${s.id}`}
+                        style={{
+                          fontFamily: MONO,
+                          fontWeight: 700,
+                          fontSize: "0.82rem",
+                          color: "var(--primary)",
+                          textDecoration: "none",
+                        }}
+                      >
+                        {s.name}
+                        {s.inPortal ? <span style={{ color: "var(--text-muted)", fontWeight: 600 }}> *</span> : null}
+                      </Link>
+                      <span style={{
+                        fontFamily: MONO,
+                        fontSize: "0.68rem",
+                        color: "var(--text-muted)",
+                        letterSpacing: "0.03em",
+                      }}>
+                        {s.team ?? "—"}
+                        {" · "}
+                        <span style={{ color: "var(--text-dim)" }} title="Euclidean distance (z-space)">
+                          Δ {s.distance}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             {/* Profile comments */}
             <div style={{ marginTop: "2.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border)" }}>

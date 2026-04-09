@@ -15,6 +15,10 @@ import {
   buildDepthTeamProfileGetters,
   computeTeamDepthProfile,
 } from "../utils/teamDepthProfile.js";
+import {
+  findSimilarByZDistance,
+  SIMILARITY_STATS,
+} from "../utils/playerSimilarity.js";
 import { logEvent } from "../logEvent.js";
 
 export const playerRouter = express.Router();
@@ -516,6 +520,51 @@ playerRouter.post("/:playerId/comments", requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error("Player comments POST error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /api/players/:playerId/similar — Euclidean distance in z-score space ──
+playerRouter.get("/:playerId/similar", async (req, res) => {
+  try {
+    const { playerId } = req.params;
+    const rawLimit = parseInt(String(req.query.limit ?? "12"), 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(25, Math.max(1, rawLimit)) : 12;
+
+    const target = await Player.findOne({ id: playerId }).lean();
+    if (!target) return res.status(404).json({ error: "Player not found" });
+
+    const pool = await Player.find({ "stats.Min": { $gte: 15 } }).lean();
+    if (pool.length < 2) {
+      return res.json({
+        similar: [],
+        metric: "euclidean_z",
+        poolNote: "Not enough players in Min ≥ 15 pool.",
+        dimensions: SIMILARITY_STATS.length,
+      });
+    }
+
+    const matches = findSimilarByZDistance(target, pool, { limit, stats: SIMILARITY_STATS });
+
+    const similar = matches.map(({ player: p, distance }) => ({
+      id: p.id,
+      name: p.name,
+      team: p.team,
+      year: p.year,
+      position: p.position,
+      height: p.height,
+      inPortal: !!p.inPortal,
+      distance: Math.round(distance * 1000) / 1000,
+    }));
+
+    res.json({
+      similar,
+      metric: "euclidean_z",
+      dimensions: SIMILARITY_STATS.length,
+      poolFilter: "stats.Min >= 15",
+    });
+  } catch (err) {
+    console.error("Player similar error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
