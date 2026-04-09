@@ -27,48 +27,54 @@ function TeamProfileBars({ teamProfile }) {
         <div
           style={{
             display: "flex",
-            alignItems: "flex-end",
             justifyContent: "center",
-            flexWrap: "nowrap",
-            gap: "0 1.1rem",
-            minWidth: "min-content",
-            minHeight: CHART_TRACK_H + 52,
             paddingTop: "0.25rem",
             paddingLeft: "0.25rem",
             paddingRight: "0.25rem",
           }}
         >
-          {bars.map((b) => (
-            <div
-              key={b.key}
-              style={{
-                width: BAR_SLOT_W,
-                flex: "0 0 auto",
-                boxSizing: "border-box",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <span
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${bars.length}, ${BAR_SLOT_W}px)`,
+              columnGap: "1.1rem",
+              rowGap: "0.35rem",
+              width: "max-content",
+              boxSizing: "border-box",
+            }}
+          >
+            {bars.map((b) => (
+              <div
+                key={`${b.key}-val`}
                 style={{
-                  fontFamily: MONO,
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  color: "var(--text-muted)",
-                  marginBottom: "0.25rem",
-                  minHeight: "1.1em",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  justifyContent: "center",
+                  minHeight: "2.15em",
+                  boxSizing: "border-box",
                 }}
               >
-                {b.value != null ? b.value : "—"}
-              </span>
+                <span
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  {b.value != null ? b.value : "—"}
+                </span>
+              </div>
+            ))}
+            {bars.map((b) => (
               <div
+                key={`${b.key}-bar`}
                 style={{
-                  width: BAR_COL_W,
+                  height: CHART_TRACK_H,
                   display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  minHeight: CHART_TRACK_H,
+                  alignItems: "flex-end",
+                  justifyContent: "center",
+                  boxSizing: "border-box",
                 }}
               >
                 <div
@@ -97,7 +103,10 @@ function TeamProfileBars({ teamProfile }) {
                   ) : null}
                 </div>
               </div>
+            ))}
+            {bars.map((b) => (
               <span
+                key={`${b.key}-lbl`}
                 style={{
                   fontFamily: MONO,
                   fontSize: "0.65rem",
@@ -105,7 +114,6 @@ function TeamProfileBars({ teamProfile }) {
                   letterSpacing: "0.02em",
                   textAlign: "center",
                   color: "var(--text-muted)",
-                  marginTop: "0.45rem",
                   lineHeight: 1.3,
                   width: "100%",
                   boxSizing: "border-box",
@@ -113,12 +121,14 @@ function TeamProfileBars({ teamProfile }) {
                   paddingRight: 2,
                   wordBreak: "break-word",
                   hyphens: "auto",
+                  alignSelf: "start",
+                  justifySelf: "center",
                 }}
               >
                 {b.label}
               </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
       <p
