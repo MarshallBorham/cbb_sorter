@@ -4,6 +4,7 @@ import {
   resolveUserTeamToCanonical,
   fetchRosterPlayersForCanonicalTeam,
   depthChartSlotForPlayer,
+  depthChartDisplayYear,
   DEPTH_SLOTS,
 } from "../utils/depthChart.js";
 import { recordDiscordDepthChartUsage } from "../logEvent.js";
@@ -86,7 +87,7 @@ export async function handleDepthChart(interaction) {
   if (portalPlayers.length > 0) {
     const portalLine = portalPlayers.map((p) => {
       const pos = depthChartSlotForPlayer(p) ?? p.position ?? null;
-      const parts = [p.height, pos, p.year].filter(Boolean).join(" ");
+      const parts = [p.height, pos, depthChartDisplayYear(p.year)].filter(Boolean).join(" ");
       return `${p.name}${parts ? ` (${parts})` : ""}`;
     }).join(", ");
     let portalValue = portalLine.length > 1024 ? `${portalLine.slice(0, 1020)}…` : portalLine;

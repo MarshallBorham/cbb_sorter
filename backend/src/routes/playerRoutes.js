@@ -461,7 +461,7 @@ playerRouter.get("/depth-chart", async (req, res) => {
           name: p.name,
           height: p.height ?? null,
           position: depthChartSlotForPlayer(p) ?? p.position ?? null,
-          year: p.year ?? null,
+          year: depthChartDisplayYear(p.year) ?? null,
         }));
       return {
         name,
