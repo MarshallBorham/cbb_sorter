@@ -22,6 +22,8 @@ export default function ResultsPage() {
   const portalOnly = searchParams.get("portalOnly");
   const hmFilter = searchParams.get("hmFilter");
   const top100 = searchParams.get("top100");
+  const breakout = searchParams.get("breakout");
+  const positions = searchParams.get("positions");
   const statList = statsParam ? statsParam.split(",") : [];
   const activeFilters = filtersParam ? JSON.parse(decodeURIComponent(filtersParam)) : [];
 
@@ -38,7 +40,7 @@ export default function ResultsPage() {
       setError("");
       try {
         const res = await fetch(
-          `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam ? `&classes=${classesParam}` : ""}${portalOnly === "true" ? "&portalOnly=true" : ""}${hmFilter ? `&hmFilter=${hmFilter}` : ""}${top100 === "true" ? "&top100=true" : ""}`
+          `/api/players?stats=${statsParam}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam ? `&classes=${classesParam}` : ""}${portalOnly === "true" ? "&portalOnly=true" : ""}${hmFilter ? `&hmFilter=${hmFilter}` : ""}${top100 === "true" ? "&top100=true" : ""}${breakout === "true" ? "&breakout=true" : ""}${positions ? `&positions=${positions}` : ""}`
         );
         const data = await res.json();
         if (!res.ok) { setError(data.error || "Failed to fetch players"); return; }
@@ -50,7 +52,7 @@ export default function ResultsPage() {
       }
     }
     fetchPlayers();
-  }, [statsParam, filterMin, filtersParam, classesParam, portalOnly, hmFilter, top100]);
+  }, [statsParam, filterMin, filtersParam, classesParam, portalOnly, hmFilter, top100, breakout, positions]);
 
   async function handleSave(player) {
     setSaving(player.id);
@@ -77,6 +79,8 @@ export default function ResultsPage() {
     classesParam ? `Class: ${classesParam}` : null,
     hmFilter === "hm" ? "HM Schools Only" : hmFilter === "non_hm" ? "Non-HM Schools Only" : null,
     top100 === "true" ? "Top 100 Competition" : null,
+    breakout === "true" ? "Breakout Candidates" : null,
+    positions ? `Position: ${positions}` : null,
     ...activeFilters
       .filter((f) => f.value !== "")
       .map((f) => `${f.stat} ${f.type === "min" ? "≥" : "≤"} ${f.value}`),

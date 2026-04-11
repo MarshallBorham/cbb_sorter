@@ -66,6 +66,17 @@ const PORTAL_POS_MAP = {
   "Center":     ["C"],
 };
 
+// Simple position → Torvik position strings
+const POSITION_TO_TORVIK = {
+  PG: ["Pure PG", "Scoring PG", "Combo G"],
+  SG: ["Combo G", "Wing G"],
+  SF: ["Wing G", "Wing F"],
+  PF: ["Wing F", "Stretch 4", "PF/CF", "PF/C"],
+  C:  ["PF/CF", "PF/C", "Center"],
+};
+
+const NON_SENIOR_YEARS = ["Fr", "So", "Jr"];
+
 function canonicalPortalPositions(rawPos) {
   if (!rawPos) return [];
   return PORTAL_POS_MAP[rawPos] ?? [String(rawPos).toUpperCase()];
@@ -88,7 +99,7 @@ function calcPercentiles(stat, pool, statsField) {
 
 // ── GET /api/players — main search/ranking endpoint ───────────────────────────
 playerRouter.get("/", async (req, res) => {
-  const { stats, filterMin, filters, classes, minHeight, maxHeight, portalOnly, hmFilter, top100 } = req.query;
+  const { stats, filterMin, filters, classes, minHeight, maxHeight, portalOnly, hmFilter, top100, breakout, positions } = req.query;
 
   const useTop100 = top100 === "true";
   const statsField = useTop100 ? "statsTop100" : "stats";
@@ -143,10 +154,27 @@ playerRouter.get("/", async (req, res) => {
     }
   }
 
-  if (classes) {
-    const classList = classes.split(",").map((c) => c.trim()).filter(Boolean);
-    if (classList.length > 0) {
-      query["year"] = { $in: classList };
+  if (breakout === "true") {
+    // Breakout: non-senior, Min 15–45, G ≥ 25
+    query["year"] = { $in: NON_SENIOR_YEARS };
+    const minField = useTop100 ? "statsTop100.Min" : "stats.Min";
+    const gField   = useTop100 ? "statsTop100.G"   : "stats.G";
+    query[minField] = { $gte: 15, $lte: 45 };
+    query[gField]   = { $gte: 25 };
+  } else {
+    if (classes) {
+      const classList = classes.split(",").map((c) => c.trim()).filter(Boolean);
+      if (classList.length > 0) {
+        query["year"] = { $in: classList };
+      }
+    }
+  }
+
+  if (positions) {
+    const posList = positions.split(",").map((p) => p.trim()).filter(Boolean);
+    const tookvikPositions = [...new Set(posList.flatMap((p) => POSITION_TO_TORVIK[p] ?? []))];
+    if (tookvikPositions.length > 0) {
+      query["position"] = { $in: tookvikPositions };
     }
   }
   if (minHeight) {
@@ -206,6 +234,28 @@ playerRouter.get("/", async (req, res) => {
         }, 0);
         return bRaw - aRaw;
       });
+
+    if (breakout === "true") {
+      // Use the full Min≥15 pool as the percentile reference — same as the
+      // single-player badge computation — so thresholds are consistent.
+      const refPool = await Player.find(
+        { "stats.Min": { $gte: 15 } },
+        { id: 1, "stats.BPM": 1, "stats.BPR": 1, _id: 0 }
+      ).lean();
+      const bpmRef = refPool.filter((p) => (p.stats?.BPM ?? 0) !== 0);
+      const bprRef = refPool.filter((p) => (p.stats?.BPR ?? 0) > 0);
+      const bpmPctFn = calcPercentiles("BPM", bpmRef, "stats");
+      const bprPctFn = calcPercentiles("BPR", bprRef, "stats");
+      const poolMap = new Map(pool.map((p) => [p.id, p]));
+      ranked = ranked
+        .filter((p) => {
+          const raw = poolMap.get(p.id);
+          const bpm = raw?.stats?.BPM ?? 0;
+          const bpr = raw?.stats?.BPR ?? 0;
+          return bpmPctFn(bpm) >= 80 || (bpr > 0 && bprPctFn(bpr) >= 80);
+        })
+        .map((p) => ({ ...p, isBreakout: true }));
+    }
 
     if (hmFilter === "hm") {
       ranked = ranked.filter((p) => resolveCanonicalTeamName(p.team, HM_TEAMS) != null);
@@ -592,7 +642,24 @@ playerRouter.get("/:playerId", async (req, res) => {
   try {
     const player = await Player.findOne({ id: req.params.playerId }).lean();
     if (!player) return res.status(404).json({ error: "Player not found" });
-    res.json(player);
+
+    let isBreakout = false;
+    const min = player.stats?.Min;
+    const g = player.stats?.G ?? 0;
+    if (NON_SENIOR_YEARS.includes(player.year) && min >= 15 && min <= 45 && g >= 25) {
+      const bpm = player.stats?.BPM ?? 0;
+      const bpr = player.stats?.BPR ?? 0;
+      if (bpr > 0) {
+        const refPool = await Player.find({ "stats.Min": { $gte: 15 } }, { id: 1, "stats.BPM": 1, "stats.BPR": 1, _id: 0 }).lean();
+        const bpmRef  = refPool.filter((p) => (p.stats?.BPM ?? 0) !== 0);
+        const bprRef  = refPool.filter((p) => (p.stats?.BPR ?? 0) > 0);
+        const bpmPctFn = calcPercentiles("BPM", bpmRef, "stats");
+        const bprPctFn = calcPercentiles("BPR", bprRef, "stats");
+        isBreakout = bpmPctFn(bpm) >= 80 || bprPctFn(bpr) >= 80;
+      }
+    }
+
+    res.json({ ...player, isBreakout });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }

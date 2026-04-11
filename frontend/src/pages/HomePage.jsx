@@ -46,6 +46,7 @@ const STATS = [
 ];
 
 const ALL_CLASSES = ["Fr", "So", "Jr", "Sr"];
+const ALL_POSITIONS = ["PG", "SG", "SF", "PF", "C"];
 
 const HM_FILTER_OPTIONS = [
   { value: null,      label: "All Schools" },
@@ -67,6 +68,8 @@ export default function HomePage() {
     { stat: "G", type: "min", value: "" },
   ]);
   const [selectedClasses, setSelectedClasses] = useState(["Fr", "So", "Jr", "Sr"]);
+  const [breakout, setBreakout] = useState(false);
+  const [selectedPositions, setSelectedPositions] = useState([]);
   const [error, setError] = useState("");
   const [trending, setTrending] = useState([]);
 
@@ -120,6 +123,12 @@ export default function HomePage() {
     );
   }
 
+  function togglePosition(pos) {
+    setSelectedPositions((prev) =>
+      prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
+    );
+  }
+
   function handleSearch(e) {
     e.preventDefault();
     const unique = new Set(selectedStats);
@@ -143,14 +152,17 @@ export default function HomePage() {
     const portalParam = portalOnly ? "&portalOnly=true" : "";
     const hmParam = hmFilter ? `&hmFilter=${hmFilter}` : "";
     const top100Param = top100 ? "&top100=true" : "";
+    const breakoutParam = breakout ? "&breakout=true" : "";
+    const positionsParam = selectedPositions.length > 0 ? `&positions=${selectedPositions.join(",")}` : "";
 
     navigate(
-      `/results?stats=${selectedStats.join(",")}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam}${portalParam}${hmParam}${top100Param}`
+      `/results?stats=${selectedStats.join(",")}&filterMin=${filterMin}${filtersParam ? `&filters=${filtersParam}` : ""}${classesParam}${portalParam}${hmParam}${top100Param}${breakoutParam}${positionsParam}`
     );
   }
 
   const activeFilterCount = advancedFilters.filter((f) => f.value !== "").length;
   const classesFiltered = selectedClasses.length < 4;
+  const positionsFiltered = selectedPositions.length > 0;
 
   return (
     <>
@@ -262,14 +274,25 @@ export default function HomePage() {
               </label>
             </div>
 
-            <div className="form-group" style={{ marginBottom: "1rem" }}>
+            <div className="form-group" style={{ marginBottom: "0.75rem" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontFamily: MONO, fontSize: "0.72rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                 <input
                   type="checkbox"
                   checked={top100}
                   onChange={(e) => setTop100(e.target.checked)}
                 />
-                Top 100 competition only (stats vs top 100 teams)
+                Top 100 competition only
+              </label>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontFamily: MONO, fontSize: "0.72rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                <input
+                  type="checkbox"
+                  checked={breakout}
+                  onChange={(e) => setBreakout(e.target.checked)}
+                />
+                Only show breakout candidates
               </label>
             </div>
 
@@ -345,6 +368,51 @@ export default function HomePage() {
                     }}
                   >
                     {cls}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Position filter */}
+            <div style={{ marginBottom: "1rem" }}>
+              <p style={{ fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.5rem", textAlign: "left" }}>
+                Position
+                {positionsFiltered && (
+                  <span style={{
+                    marginLeft: "0.5rem",
+                    background: "var(--primary)",
+                    color: "#0d1117",
+                    borderRadius: "999px",
+                    padding: "0.1rem 0.5rem",
+                    fontSize: "0.65rem",
+                    fontFamily: MONO,
+                  }}>
+                    filtered
+                  </span>
+                )}
+              </p>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                {ALL_POSITIONS.map((pos) => (
+                  <button
+                    key={pos}
+                    type="button"
+                    onClick={() => togglePosition(pos)}
+                    style={{
+                      padding: "0.3rem 0.85rem",
+                      borderRadius: "999px",
+                      border: "1px solid var(--border)",
+                      cursor: "pointer",
+                      fontFamily: MONO,
+                      fontWeight: 700,
+                      fontSize: "0.7rem",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      background: selectedPositions.includes(pos) ? "var(--primary)" : "transparent",
+                      color: selectedPositions.includes(pos) ? "#0d1117" : "var(--text)",
+                      transition: "all 180ms ease",
+                    }}
+                  >
+                    {pos}
                   </button>
                 ))}
               </div>
@@ -475,7 +543,7 @@ export default function HomePage() {
               textAlign: "left",
             }}>
               <h2 style={{ fontFamily: MONO, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
-                // Most Saved Players
+                // Trending Players
               </h2>
               <ol style={{ paddingLeft: "1.25rem", margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {trending.map((player) => (

@@ -132,7 +132,7 @@ export default function PlayerPage() {
   const [posting, setPosting] = useState(false);
   const [similar, setSimilar] = useState(null);
   const [similarDimensions, setSimilarDimensions] = useState(20);
-  const [showTrend, setShowTrend] = useState(true);
+  const [showTrend, setShowTrend] = useState(false);
   const canComment = !!token && !isGuest;
 
   useEffect(() => {
@@ -265,31 +265,47 @@ export default function PlayerPage() {
               marginTop: "1rem",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <h1 style={{ fontFamily: MONO, margin: 0, fontSize: "1.4rem", fontWeight: 700, letterSpacing: "0.02em" }}>
-                  {player.name}
-                </h1>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <h1 style={{ fontFamily: MONO, margin: 0, fontSize: "1.4rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                    {player.name}
+                  </h1>
                   {player.inPortal && (
-                    <span style={{
+                    <Link to="/portal" style={{
                       fontFamily: MONO, fontWeight: 700, fontSize: "0.65rem",
                       letterSpacing: "0.08em", textTransform: "uppercase",
                       background: "var(--primary)", color: "#0d1117",
                       padding: "0.3rem 0.85rem", borderRadius: "999px",
+                      textDecoration: "none",
                     }}>
                       In Transfer Portal
-                    </span>
+                    </Link>
                   )}
-                  <Link
-                    to={`/compare?p1=${playerId}`}
-                    style={{
-                      fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700,
-                      letterSpacing: "0.06em", textTransform: "uppercase",
-                      color: "var(--primary)", textDecoration: "none",
-                    }}
-                  >
-                    Compare →
-                  </Link>
+                  {player.isBreakout && (
+                    <Link
+                      to="/results?stats=BPM&filterMin=true&breakout=true"
+                      style={{
+                        fontFamily: MONO, fontWeight: 700, fontSize: "0.65rem",
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                        background: "#b8860b", color: "#fff",
+                        padding: "0.3rem 0.85rem", borderRadius: "999px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Breakout
+                    </Link>
+                  )}
                 </div>
+                <Link
+                  to={`/compare?p1=${playerId}`}
+                  style={{
+                    fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700,
+                    letterSpacing: "0.06em", textTransform: "uppercase",
+                    color: "var(--primary)", textDecoration: "none",
+                    flexShrink: 0,
+                  }}
+                >
+                  Compare →
+                </Link>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.4rem" }}>
                 <p style={{ fontFamily: MONO, color: "var(--text-muted)", margin: 0, fontSize: "0.78rem", letterSpacing: "0.04em" }}>
