@@ -9,6 +9,7 @@ import { getEnvVar } from "./getEnvVar.js";
 import { authRouter } from "./routes/authRoutes.js";
 import { playerRouter } from "./routes/playerRoutes.js";
 import { watchlistRouter } from "./routes/watchlistRoutes.js";
+import { internalRouter } from "./routes/internalRoutes.js";
 import { startBot } from "./bot/index.js";
 import { loadPlayerStore, reloadPlayerStore } from "./utils/playerStore.js";
 
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/players", playerRouter);
 app.use("/api/watchlist", watchlistRouter);
+app.use("/api/internal", internalRouter);
 
 app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 app.get("/{*path}", (req, res) => {

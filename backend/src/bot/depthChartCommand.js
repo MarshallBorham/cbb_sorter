@@ -1,6 +1,3 @@
-import { readFileSync, writeFileSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import {
   buildTeamDepth,
@@ -10,15 +7,7 @@ import {
   depthChartDisplayYear,
   DEPTH_SLOTS,
 } from "../utils/depthChart.js";
-
-const STATS_FILE = join(dirname(fileURLToPath(import.meta.url)), "../data/depthChart.json");
-
-function trackTeam(teamCanonical) {
-  let counts = {};
-  try { counts = JSON.parse(readFileSync(STATS_FILE, "utf8")); } catch { /* first run */ }
-  counts[teamCanonical] = (counts[teamCanonical] ?? 0) + 1;
-  writeFileSync(STATS_FILE, JSON.stringify(counts, null, 2), "utf8");
-}
+import { DiscordDepthChartTeamStat } from "../models/DiscordDepthChartTeamStat.js";
 
 const SITE = "https://cbb.up.railway.app";
 
@@ -63,7 +52,15 @@ export async function handleDepthChart(interaction) {
     return;
   }
 
-  try { trackTeam(canonical); } catch (err) { console.error("[depthChart.json] Failed to update:", err.message); }
+  try {
+    await DiscordDepthChartTeamStat.findOneAndUpdate(
+      { teamCanonical: canonical },
+      { $inc: { count: 1 }, $set: { lastRequestedAt: new Date() } },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.error("[depth-chart tracking]", err.message);
+  }
 
   const roster = await fetchRosterPlayersForCanonicalTeam(canonical);
   const depth = buildTeamDepth(roster);
