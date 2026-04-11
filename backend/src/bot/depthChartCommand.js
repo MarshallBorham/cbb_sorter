@@ -1,3 +1,6 @@
+import { readFileSync, writeFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import {
   buildTeamDepth,
@@ -7,7 +10,15 @@ import {
   depthChartDisplayYear,
   DEPTH_SLOTS,
 } from "../utils/depthChart.js";
-import { recordDiscordDepthChartUsage } from "../logEvent.js";
+
+const STATS_FILE = join(dirname(fileURLToPath(import.meta.url)), "../data/depthChart.json");
+
+function trackTeam(teamCanonical) {
+  let counts = {};
+  try { counts = JSON.parse(readFileSync(STATS_FILE, "utf8")); } catch { /* first run */ }
+  counts[teamCanonical] = (counts[teamCanonical] ?? 0) + 1;
+  writeFileSync(STATS_FILE, JSON.stringify(counts, null, 2), "utf8");
+}
 
 const SITE = "https://cbb.up.railway.app";
 
@@ -46,25 +57,13 @@ export async function handleDepthChart(interaction) {
 
   const canonical = resolveUserTeamToCanonical(teamInput);
   if (!canonical) {
-    recordDiscordDepthChartUsage({
-      teamInput,
-      ok: false,
-      guildId,
-      userId,
-    });
     await interaction.editReply({
       content: `❌ No unique team match for **${teamInput}**. Try the full name from the site depth chart (e.g. \`Miami FL\`, \`St. John's\`).`,
     });
     return;
   }
 
-  recordDiscordDepthChartUsage({
-    teamInput,
-    teamCanonical: canonical,
-    ok: true,
-    guildId,
-    userId,
-  });
+  try { trackTeam(canonical); } catch (err) { console.error("[depthChart.json] Failed to update:", err.message); }
 
   const roster = await fetchRosterPlayersForCanonicalTeam(canonical);
   const depth = buildTeamDepth(roster);
