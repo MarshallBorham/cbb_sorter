@@ -45,6 +45,14 @@ const STATS = [
   { value: "3P100",     label: "3P/100" },
 ];
 
+// Curated pool for randomizer — excludes raw volume/counting stats
+const RANDOMIZABLE_STATS = [
+  "PPG", "RPG", "APG", "ORTG", "DRTG", "Usg", "eFG", "TS",
+  "OR", "DR", "ARate", "TO", "Blk", "Stl", "FTRate", "FC40",
+  "FT", "2P", "3P", "Close2P", "Far2P", "DunkPct",
+  "BPM", "OBPM", "DBPM", "3P100", "BPR", "OBPR", "DBPR",
+];
+
 const ALL_CLASSES = ["Fr", "So", "Jr", "Sr"];
 const ALL_POSITIONS = ["PG", "SG", "SF", "PF", "C"];
 
@@ -127,6 +135,13 @@ export default function HomePage() {
     setSelectedPositions((prev) =>
       prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
     );
+  }
+
+  function handleRandomize() {
+    const count = Math.random() < 0.5 ? 2 : 3;
+    const shuffled = [...RANDOMIZABLE_STATS].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, count);
+    navigate(`/results?stats=${picked.join(",")}&filterMin=true`);
   }
 
   function handleSearch(e) {
@@ -527,6 +542,29 @@ export default function HomePage() {
                 </button>
               </div>
             )}
+
+            {/* Randomize */}
+            <button
+              type="button"
+              onClick={handleRandomize}
+              style={{
+                width: "100%",
+                marginTop: "0.5rem",
+                padding: "0.55rem",
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                fontFamily: MONO,
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              ⚄ Randomize
+            </button>
 
           </form>
 
