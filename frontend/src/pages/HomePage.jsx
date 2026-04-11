@@ -184,7 +184,7 @@ export default function HomePage() {
       <Header />
       <main className="container">
         <div className="home-hero">
-          <h1>CBB Sorter</h1>
+          <h1>CBB Stats</h1>
           <p style={{ fontFamily: MONO }}>// select stats to rank players by combined percentile</p>
 
           {error && (

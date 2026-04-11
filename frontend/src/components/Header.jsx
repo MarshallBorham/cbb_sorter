@@ -92,7 +92,7 @@ export default function Header() {
   return (
     <header className="header">
       <div className="header-inner">
-        <NavLink to="/" className="logo">CBB Sorter</NavLink>
+        <NavLink to="/" className="logo">CBB Stats</NavLink>
         <div className="header-trailing">
           <nav className="nav" aria-label="Main navigation">
             <NavLink to="/" end className={({ isActive }) => isActive ? "active" : ""}>Stats</NavLink>

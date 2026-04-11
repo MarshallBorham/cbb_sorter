@@ -56,7 +56,7 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>CBB Sorter</h1>
+        <h1>CBB Stats</h1>
 
         {discordBanner && <p className="error-msg">{discordBanner}</p>}
         {error && <p className="error-msg">{error}</p>}
