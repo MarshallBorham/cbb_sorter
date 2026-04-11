@@ -141,3 +141,4 @@ CLAUDE.md
 backend/src/data/hsPlayers.txt
 backend/src/debugPortalPlayer.js
 backend/src/deleteHsPlayers.js
+backend/src/syncPrevStats.js

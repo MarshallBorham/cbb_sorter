@@ -29,14 +29,25 @@ const STAT_GROUPS = [
 
 const LOWER_IS_BETTER = new Set(["TO", "FC40", "DRTG"]);
 const MONO = "var(--font-mono)";
+const WHOLE_NUMBER_STATS = new Set(["G","FTA","FTM","2PM","2PA","3PM","3PA","Close2PM","Close2PA","Far2PM","Far2PA","DunksAtt","DunksMade"]);
+const HUNDREDTHS_STATS = new Set(["DunkPct","Far2P","Close2P","3P","2P","FT"]);
+const PERCENT_STATS = new Set(["eFG","TS","OR","DR","ARate","TO","Blk","Stl","FTRate","FT","2P","3P","Close2P","Far2P","DunkPct","Usg","Min"]);
 
 function formatVal(stat, val) {
-  const wholeNumber = new Set(["G","FTA","FTM","2PM","2PA","3PM","3PA","Close2PM","Close2PA","Far2PM","Far2PA","DunksAtt","DunksMade"]);
-  const hundredths = new Set(["DunkPct","Far2P","Close2P","3P","2P","FT"]);
   if (val == null) return "—";
-  if (wholeNumber.has(stat)) return Math.round(val).toString();
-  if (hundredths.has(stat)) return Number(val).toFixed(2);
+  if (WHOLE_NUMBER_STATS.has(stat)) return Math.round(val).toString();
   return Number(val).toFixed(1);
+}
+
+function formatDelta(stat, delta) {
+  if (delta == null) return null;
+  const absVal = Math.abs(delta);
+  let absStr;
+  if (WHOLE_NUMBER_STATS.has(stat)) absStr = Math.round(absVal).toString();
+  else absStr = absVal.toFixed(1);
+  const sign = delta > 0 ? "+" : "−";
+  const suffix = PERCENT_STATS.has(stat) ? "%" : "";
+  return `${sign}${absStr}${suffix}`;
 }
 
 function ordinal(n) {
@@ -45,11 +56,16 @@ function ordinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function StatCard({ statKey, val, pct }) {
+function StatCard({ statKey, val, pct, prevVal }) {
   const barColor = pct == null ? "var(--border-bright)"
     : pct >= 75 ? "var(--success)"
     : pct >= 40 ? "var(--primary)"
     : "var(--error)";
+
+  const delta = (val != null && prevVal != null) ? val - prevVal : null;
+  const improved = delta == null ? null
+    : LOWER_IS_BETTER.has(statKey) ? delta < 0 : delta > 0;
+  const deltaStr = formatDelta(statKey, delta);
 
   return (
     <div style={{
@@ -65,12 +81,17 @@ function StatCard({ statKey, val, pct }) {
       }}>
         {STAT_LABELS[statKey] || statKey}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.4rem" }}>
-        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "1.1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "baseline", gap: "0.25rem", marginBottom: "0.4rem" }}>
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "1.1rem", whiteSpace: "nowrap", overflow: "hidden" }}>
           {formatVal(statKey, val)}
+          {delta != null && delta !== 0 && (
+            <span style={{ fontFamily: MONO, fontSize: "0.55rem", fontWeight: 600, marginLeft: "0.3rem", color: improved ? "var(--success)" : "var(--error)" }}>
+              {deltaStr}
+            </span>
+          )}
         </span>
         {pct != null && (
-          <span style={{ fontFamily: MONO, fontSize: "0.68rem", color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+          <span style={{ fontFamily: MONO, fontSize: "0.68rem", color: "var(--text-muted)", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
             {ordinal(pct)}
           </span>
         )}
@@ -111,6 +132,7 @@ export default function PlayerPage() {
   const [posting, setPosting] = useState(false);
   const [similar, setSimilar] = useState(null);
   const [similarDimensions, setSimilarDimensions] = useState(20);
+  const [showTrend, setShowTrend] = useState(true);
   const canComment = !!token && !isGuest;
 
   useEffect(() => {
@@ -242,16 +264,10 @@ export default function PlayerPage() {
               marginBottom: "2rem",
               marginTop: "1rem",
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
-                <div>
-                  <h1 style={{ fontFamily: MONO, margin: 0, fontSize: "1.4rem", fontWeight: 700, letterSpacing: "0.02em" }}>
-                    {player.name}
-                  </h1>
-                  <p style={{ fontFamily: MONO, color: "var(--text-muted)", margin: "0.4rem 0 0", fontSize: "0.78rem", letterSpacing: "0.04em" }}>
-                    {player.team} · {player.position} · {player.year}
-                    {player.height && ` · ${player.height}`}
-                  </p>
-                </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <h1 style={{ fontFamily: MONO, margin: 0, fontSize: "1.4rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                  {player.name}
+                </h1>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.5rem" }}>
                   {player.inPortal && (
                     <span style={{
@@ -275,7 +291,34 @@ export default function PlayerPage() {
                   </Link>
                 </div>
               </div>
-
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.4rem" }}>
+                <p style={{ fontFamily: MONO, color: "var(--text-muted)", margin: 0, fontSize: "0.78rem", letterSpacing: "0.04em" }}>
+                  {player.team} · {player.position} · {player.year}
+                  {player.height && ` · ${player.height}`}
+                </p>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer", userSelect: "none", flexShrink: 0 }}>
+                  <span style={{ fontFamily: MONO, fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                    Display change from last season
+                  </span>
+                  <span
+                    onClick={() => setShowTrend(v => !v)}
+                    style={{
+                      position: "relative", display: "inline-block",
+                      width: "2rem", height: "1.1rem",
+                      background: showTrend ? "var(--primary)" : "var(--border)",
+                      borderRadius: "999px", transition: "background 0.2s", flexShrink: 0,
+                    }}
+                  >
+                    <span style={{
+                      position: "absolute", top: "0.15rem",
+                      left: showTrend ? "calc(100% - 0.95rem)" : "0.15rem",
+                      width: "0.8rem", height: "0.8rem",
+                      background: "#fff", borderRadius: "50%",
+                      transition: "left 0.2s",
+                    }} />
+                  </span>
+                </label>
+              </div>
               <div
                 style={{
                   marginTop: "1.25rem",
@@ -313,6 +356,7 @@ export default function PlayerPage() {
                         statKey={s}
                         val={player.stats[s]}
                         pct={percentiles[s]}
+                        prevVal={showTrend ? player.prevStats?.[s] : undefined}
                       />
                     ))}
                   </div>
