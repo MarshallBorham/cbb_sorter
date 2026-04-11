@@ -58,7 +58,7 @@ export async function recordDiscordDepthChartUsage(payload) {
   }
   try {
     await incrementDepthChartFile(teamCanonical);
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error("[depthChart.txt] Failed to update:", err.message);
   }
 }
