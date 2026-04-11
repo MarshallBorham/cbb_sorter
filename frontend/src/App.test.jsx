@@ -15,7 +15,7 @@ function renderWithProviders(ui, { route = "/login" } = {}) {
 describe("App", () => {
   it("renders login at /login", () => {
     renderWithProviders(<App />, { route: "/login" });
-    expect(screen.getByRole("heading", { name: /CBB Sorter/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /CBB Stats/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 });
