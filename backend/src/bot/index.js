@@ -23,7 +23,7 @@ import {
   SIMILARITY_STATS,
 } from "../utils/playerSimilarity.js";
 
-const WEB_APP_BASE = "https://cbb.up.railway.app";
+const WEB_APP_BASE = "https://stats-cbb.com";
 
 const ALLOWED_GUILDS = new Set([
   // "800261752540364840",
@@ -315,7 +315,7 @@ function buildSearchEmbed(ranked, statList, limit, filterMin, portalOnly, classF
 
   return new EmbedBuilder()
     .setTitle(`🏀 Top Players: ${statList.join(" + ")}`)
-    .setURL(`https://cbb.up.railway.app/results?${params.toString()}`)
+    .setURL(`https://stats-cbb.com/results?${params.toString()}`)
     .setColor(0x0052cc)
     .setDescription(description)
     .setFooter({ text: footerText + " · Click title to see full results" });
@@ -375,7 +375,7 @@ async function buildCompareEmbed(playerA, playerB, sharedBy = null, top100 = fal
     verdict = `🤝 Tied ${scoreA}–${scoreB}`;
   }
 
-  const compareUrl = `https://cbb.up.railway.app/compare?p1=${playerA.id}&p2=${playerB.id}`;
+  const compareUrl = `https://stats-cbb.com/compare?p1=${playerA.id}&p2=${playerB.id}`;
 
   const embed = new EmbedBuilder()
     .setTitle(`⚔️ ${playerA.name} vs ${playerB.name}`)

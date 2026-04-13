@@ -33,13 +33,13 @@ app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 // ── robots.txt ────────────────────────────────────────────────────────────────
 app.get("/robots.txt", (req, res) => {
   res.type("text/plain").send(
-    "User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://cbb.up.railway.app/sitemap.xml\n"
+    "User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://stats-cbb.com/sitemap.xml\n"
   );
 });
 
 // ── sitemap.xml ───────────────────────────────────────────────────────────────
 app.get("/sitemap.xml", (req, res) => {
-  const base = "https://cbb.up.railway.app";
+  const base = "https://stats-cbb.com";
   const staticPages = [
     { loc: `${base}/`, priority: "1.0" },
     { loc: `${base}/portal`, priority: "0.9" },
@@ -66,10 +66,11 @@ function getIndexHtml() {
 }
 
 function injectMeta(html, title, description, url) {
-  const ogUrl = url ? `https://cbb.up.railway.app${url}` : "https://cbb.up.railway.app";
+  const ogUrl = url ? `https://stats-cbb.com${url}` : "https://stats-cbb.com";
   const tags = [
     `<title>${title}</title>`,
     `<meta name="description" content="${description}">`,
+    `<link rel="canonical" href="${ogUrl}">`,
     `<meta property="og:title" content="${title}">`,
     `<meta property="og:description" content="${description}">`,
     `<meta property="og:url" content="${ogUrl}">`,

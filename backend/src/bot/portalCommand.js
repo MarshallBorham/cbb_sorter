@@ -2,7 +2,7 @@ import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } fro
 import { Player } from "../models/Player.js";
 import { resolveCanonicalTeamName } from "../data/portalConferenceMap.js";
 
-const SITE = "https://cbb.up.railway.app";
+const SITE = "https://stats-cbb.com";
 
 // ── Position mapping ──────────────────────────────────────────────────────────
 const POS_MAP = {

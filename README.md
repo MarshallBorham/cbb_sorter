@@ -4,7 +4,7 @@ College basketball player discovery and comparison: percentile rankings across 4
 
 | | |
 | --- | --- |
-| **Live site** | https://cbb.up.railway.app |
+| **Live site** | https://stats-cbb.com |
 | **Repository** | https://github.com/MarshallBorham/cbb_sorter |
 
 ---

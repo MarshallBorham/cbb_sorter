@@ -9,7 +9,7 @@ import {
 } from "../utils/depthChart.js";
 import { DiscordDepthChartTeamStat } from "../models/DiscordDepthChartTeamStat.js";
 
-const SITE = "https://cbb.up.railway.app";
+const SITE = "https://stats-cbb.com";
 
 function heightClassLabel(height, year) {
   const h = height != null && String(height).trim() !== "" ? String(height).trim() : "—";
