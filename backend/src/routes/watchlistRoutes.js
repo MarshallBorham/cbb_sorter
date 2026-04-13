@@ -15,7 +15,7 @@ watchlistRouter.get("/trending", async (req, res) => {
     if (cached) return res.json(cached);
 
     const top = await PlayerTrend.find()
-      .sort({ trendingTotal: -1 })
+      .sort({ score: -1, lastViewedAt: -1 })
       .limit(3)
       .lean();
 

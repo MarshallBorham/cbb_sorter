@@ -1,5 +1,6 @@
 import express from "express";
 import { Player } from "../models/Player.js";
+import { PlayerTrend } from "../models/PlayerTrend.js";
 import { User } from "../models/User.js";
 import { PlayerComment } from "../models/PlayerComment.js";
 import { ComparisonResult } from "../models/ComparisonResult.js";
@@ -673,6 +674,7 @@ playerRouter.get("/:playerId", async (req, res) => {
 
     const payload = { ...player, isBreakout };
     cacheSet(profileCacheKey, payload, TTL_PROFILE);
+    PlayerTrend.updateOne({ playerId: player.id }, { $inc: { trendingTotal: 1, score: 1 }, $set: { lastViewedAt: new Date() } }, { upsert: true }).catch(() => {});
     res.json(payload);
   } catch (err) {
     res.status(500).json({ error: "Server error" });

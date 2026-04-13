@@ -742,7 +742,7 @@ export async function startBot() {
           return;
         }
 
-        PlayerTrend.updateOne({ playerId: player.id }, { $inc: { trendingTotal: 1 } }, { upsert: true }).catch(() => {});
+        PlayerTrend.updateOne({ playerId: player.id }, { $inc: { trendingTotal: 1, score: 1 }, $set: { lastViewedAt: new Date() } }, { upsert: true }).catch(() => {});
         await editReplyWithPlayerEmbedAndRadar(interaction, player, null, top100);
       }
 
@@ -923,7 +923,7 @@ export async function startBot() {
           return;
         }
 
-        PlayerTrend.updateOne({ playerId: player.id }, { $inc: { trendingTotal: 1 } }, { upsert: true }).catch(() => {});
+        PlayerTrend.updateOne({ playerId: player.id }, { $inc: { trendingTotal: 1, score: 1 }, $set: { lastViewedAt: new Date() } }, { upsert: true }).catch(() => {});
         await editReplyWithPlayerEmbedAndRadar(interaction, player, interaction.user.username, top100);
       }
 

@@ -12,6 +12,7 @@ import { watchlistRouter } from "./routes/watchlistRoutes.js";
 import { internalRouter } from "./routes/internalRoutes.js";
 import { startBot } from "./bot/index.js";
 import { loadPlayerStore, reloadPlayerStore } from "./utils/playerStore.js";
+import { PlayerTrend } from "./models/PlayerTrend.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number.parseInt(getEnvVar("PORT", false), 10) || 3000;
@@ -40,6 +41,17 @@ mongoose
       console.log(`Server running at http://localhost:${PORT}. CTRL+C to stop.`);
     });
     startBot();
+
+    // Decay trending scores daily at midnight — multiplies all scores by 0.8
+    // so views from ~5 days ago contribute ~33% of a fresh view
+    cron.schedule("0 0 * * *", async () => {
+      try {
+        await PlayerTrend.updateMany({}, [{ $set: { score: { $max: [{ $multiply: ["$score", 0.8] }, 1] } } }]);
+        console.log("[cron] Trending scores decayed.");
+      } catch (err) {
+        console.error("[cron] Trending decay failed:", err.message);
+      }
+    });
 
     // Run portal sync every 2 hours
     cron.schedule("0 */2 * * *", () => {
