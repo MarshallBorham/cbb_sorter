@@ -262,8 +262,8 @@ const allDbPlayers = await Player.find({}, "name team _id").lean();
 const distinctTeams = [...new Set(allDbPlayers.map((d) => d.team).filter(Boolean))];
 console.log(`Loaded ${allDbPlayers.length} players from database (${distinctTeams.length} distinct teams)`);
 
-await Player.updateMany({}, { inPortal: false });
-console.log("Reset all inPortal flags");
+await Player.updateMany({}, { inPortal: false, portalCommitted: false });
+console.log("Reset all inPortal/portalCommitted flags");
 
 let matchedPortal = 0;
 let fuzzyMatched = 0;
@@ -291,12 +291,12 @@ for (const p of allPlayers) {
     if (isCommittedTransfer(p)) {
       const newTeam = resolveDbTeamName(p.toSchoolName, distinctTeams);
       if (newTeam) {
-        await Player.updateOne({ _id: player._id }, { $set: { team: newTeam, inPortal: false } });
+        await Player.updateOne({ _id: player._id }, { $set: { team: newTeam, inPortal: false, portalCommitted: true } });
         player.team = newTeam;
         committedTeamUpdates++;
         console.log(`Committed to Torvik team: "${fullName}" → ${newTeam} (VC: "${p.toSchoolName}")`);
       } else {
-        await Player.updateOne({ _id: player._id }, { $set: { inPortal: false } });
+        await Player.updateOne({ _id: player._id }, { $set: { inPortal: false, portalCommitted: true } });
         committedNoTeamMap++;
         console.warn(
           `Committed but no Torvik team match for "${fullName}" — VC destination: "${p.toSchoolName}" (status: ${p.transferStatusName ?? p.transferStatus ?? "?"})`

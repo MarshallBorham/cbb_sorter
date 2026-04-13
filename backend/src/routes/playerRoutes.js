@@ -420,7 +420,7 @@ playerRouter.get("/portal", async (req, res) => {
     const posFilter   = positions ? positions.split(",").map(p => p.trim().toUpperCase()).filter(Boolean) : [];
     const classFilter = classes   ? classes.split(",").map(c => c.trim()).filter(Boolean) : [];
 
-    let players = getPlayerStore().filter((p) => p.inPortal);
+    let players = getPlayerStore().filter((p) => p.inPortal || p.portalCommitted);
 
     // Position filter
     if (posFilter.length) {
@@ -449,12 +449,13 @@ playerRouter.get("/portal", async (req, res) => {
     });
 
     const result = players.map(p => ({
-      id:       p.id,
-      name:     p.name,
-      position: p.position,
-      team:     p.team,
-      year:     p.year,
-      height:   p.height,
+      id:              p.id,
+      name:            p.name,
+      position:        p.position,
+      team:            p.team,
+      year:            p.year,
+      height:          p.height,
+      portalCommitted: p.portalCommitted ?? false,
       PPG:  p.stats?.PPG  ?? null,
       RPG:  p.stats?.RPG  ?? null,
       APG:  p.stats?.APG  ?? null,

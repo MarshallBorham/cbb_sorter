@@ -9,6 +9,7 @@ const playerSchema = new mongoose.Schema({
   height: String,
   heightInches: Number,
   inPortal: { type: Boolean, default: false },
+  portalCommitted: { type: Boolean, default: false },
   stats: { type: Map, of: Number },
   statsTop100: { type: Map, of: Number, default: {} },
   prevStats: { type: Map, of: Number, default: {} },

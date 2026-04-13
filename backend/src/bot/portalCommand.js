@@ -85,7 +85,7 @@ function buildContent(players, page, total, posFilter, hmFilter) {
   const filterStr = filterParts.length ? `*Filters: ${filterParts.join(" | ")}*\n\n` : "";
   const footer    = `\n-# Page ${page + 1} of ${totalPages} · ${total} players`;
 
-  return `🔀 **Transfer Portal — Top BPR**\n\n` + filterStr + lines.join("\n") + footer;
+  return `🔀 **Transfer Portal — Top Available BPR**\n\n` + filterStr + lines.join("\n") + footer;
 }
 
 function buildRow(page, totalPages, disabled = false) {
@@ -124,8 +124,8 @@ export async function handlePortal(interaction) {
 
   const hmFilter = interaction.options.getString("hm_filter") ?? null;
 
-  // Fetch & filter
-  const allPortal = await Player.find({ inPortal: true }).lean();
+  // Fetch & filter — available only (not yet committed)
+  const allPortal = await Player.find({ inPortal: true, portalCommitted: { $ne: true } }).lean();
 
   const filtered = allPortal.filter(p => {
     if (posFilter.length) {

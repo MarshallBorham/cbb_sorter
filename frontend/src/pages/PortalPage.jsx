@@ -330,6 +330,18 @@ export default function PortalPage() {
                         >
                           {p.name}
                         </Link>
+                        {p.portalCommitted && (
+                          <span style={{
+                            marginLeft: "0.5rem",
+                            fontFamily: MONO, fontWeight: 700, fontSize: "0.6rem",
+                            letterSpacing: "0.08em", textTransform: "uppercase",
+                            background: "var(--success)", color: "#0d1117",
+                            padding: "0.15rem 0.55rem", borderRadius: "999px",
+                            verticalAlign: "middle",
+                          }}>
+                            Committed
+                          </span>
+                        )}
                       </td>
 
                       {/* Position */}
