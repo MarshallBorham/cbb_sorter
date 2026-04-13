@@ -4,6 +4,13 @@ import { BrowserRouter } from "react-router";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import App from "./App.jsx";
 import "./index.css";
+import posthog from "posthog-js";
+
+posthog.init("phc_kxssmc4TD65kkc5ZYpQqyr5eV8pTzaGcBbherf2WAnaQ", {
+  api_host: "https://us.i.posthog.com",
+  person_profiles: "identified_only",
+  capture_pageview: false,
+});
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
