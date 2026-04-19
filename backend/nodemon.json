@@ -1,6 +1,6 @@
 {
   "watch": ["src"],
-  "ignore": ["src/**/*.test.js", "node_modules"],
-  "ext": "ts,mjs,js,json,graphql",
-  "exec": "node ./src/main.js"
+  "ignore": ["src/**/*.test.ts", "node_modules"],
+  "ext": "ts,mjs,js,json",
+  "exec": "tsx ./src/main.ts"
 }

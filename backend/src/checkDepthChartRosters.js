@@ -36,21 +36,53 @@ for (const p of players) {
   }
 }
 
-const thin = [];
+const TARGET_CONFERENCES = new Set(["Big East", "ACC", "Big 12", "SEC"]);
+const targetTeams = new Set(
+  Object.entries(PORTAL_CONFERENCE_MAP)
+    .filter(([conf]) => TARGET_CONFERENCES.has(conf))
+    .flatMap(([, teams]) => [...teams])
+);
+
+const thin5 = [];
+const thin8 = [];
+const thin8target = [];
 
 for (const [team, roster] of byTeam) {
   const eligible = filterDepthChartRoster(roster); // removes seniors + portal
   const withSlot = eligible.filter((p) => depthChartSlotForPlayer(p) !== null);
   if (withSlot.length < 5) {
-    thin.push({ team, count: withSlot.length });
+    thin5.push({ team, count: withSlot.length });
+  }
+  if (withSlot.length < 8) {
+    thin8.push({ team, count: withSlot.length });
+    if (targetTeams.has(team)) {
+      thin8target.push({ team, count: withSlot.length });
+    }
   }
 }
 
-thin.sort((a, b) => a.count - b.count || a.team.localeCompare(b.team));
+thin5.sort((a, b) => a.count - b.count || a.team.localeCompare(b.team));
+thin8.sort((a, b) => a.count - b.count || a.team.localeCompare(b.team));
+thin8target.sort((a, b) => a.count - b.count || a.team.localeCompare(b.team));
 
-console.log(`\nTeams with fewer than 5 eligible depth chart players: ${thin.length} / ${allTeams.length}\n`);
-for (const { team, count } of thin) {
+const openSpots8 = thin8.reduce((sum, { count }) => sum + (8 - count), 0);
+const openSpots8target = thin8target.reduce((sum, { count }) => sum + (8 - count), 0);
+
+console.log(`\nTeams with fewer than 5 eligible depth chart players: ${thin5.length} / ${allTeams.length}\n`);
+for (const { team, count } of thin5) {
   console.log(`  ${String(count).padStart(2)}  ${team}`);
+}
+
+console.log(`\nTeams with fewer than 8 eligible depth chart players: ${thin8.length} / ${allTeams.length}`);
+console.log(`Total open spots to reach 8 per team: ${openSpots8}\n`);
+for (const { team, count } of thin8) {
+  console.log(`  ${String(count).padStart(2)}  ${team}  (${8 - count} open)`);
+}
+
+console.log(`\nBig East / ACC / Big 12 / SEC — teams with fewer than 8: ${thin8target.length} / ${targetTeams.size}`);
+console.log(`Open spots to reach 8 in those conferences: ${openSpots8target}\n`);
+for (const { team, count } of thin8target) {
+  console.log(`  ${String(count).padStart(2)}  ${team}  (${8 - count} open)`);
 }
 
 await mongoose.disconnect();

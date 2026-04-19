@@ -13,6 +13,7 @@ import PortalPage from "./pages/PortalPage.jsx";
 import DepthChartPage from "./pages/DepthChartPage.jsx";
 import DiscordCallbackPage from "./pages/DiscordCallbackPage.jsx";
 import DcUsagePage from "./pages/DcUsagePage.jsx";
+import RankingsPage from "./pages/Rankings.jsx";
 
 function usePageTracking() {
   const location = useLocation();
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/player/:playerId" element={<PlayerPage />} />
       <Route path="/portal" element={<PortalPage />} />
       <Route path="/depth-chart" element={<DepthChartPage />} />
+      <Route path="/rankings" element={<RankingsPage />} />
       <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
       <Route path="/watchlist" element={<AuthOnlyRoute><WatchlistPage /></AuthOnlyRoute>} />
       <Route path="/scouting" element={<DcUsagePage />} />

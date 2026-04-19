@@ -181,6 +181,16 @@ export const TEAM_DB_ALIASES = {
   Seattle: "Seattle U",
   GCU: "Grand Canyon",
   "Grand Canyon University": "Grand Canyon",
+  // ESPN displayName → canonical PORTAL_CONFERENCE_MAP name
+  "UAlbany": "Albany",
+  "Hawai\u02bbi": "Hawaii",                 // okina character in ESPN name
+  "IU Indianapolis": "IU Indy",
+  "Pennsylvania": "Penn",
+  "San Jos\u00e9 State": "San Jose State",  // é accent in ESPN name
+  "Long Island University": "LIU",
+  "SE Louisiana": "Southeastern Louisiana",
+  "St. Thomas-Minnesota": "St. Thomas",
+  "UL Monroe": "ULM",
 };
 
 /** @param {string|null|undefined} dbTeam @param {Set<string>} canonicalSet */

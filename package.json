@@ -3,6 +3,6 @@
   "type": "module",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "cd backend && npm install && node src/main.js"
+    "start": "cd backend && npm install && tsx src/main.ts"
   }
 }
