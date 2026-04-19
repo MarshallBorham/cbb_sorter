@@ -56,7 +56,7 @@ export default function App() {
       <Route path="/portal" element={<PortalPage />} />
       <Route path="/depth-chart" element={<DepthChartPage />} />
       <Route path="/rankings" element={<RankingsPage />} />
-      <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+      <Route path="/" element={<HomePage />} />
       <Route path="/watchlist" element={<AuthOnlyRoute><WatchlistPage /></AuthOnlyRoute>} />
       <Route path="/scouting" element={<DcUsagePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
