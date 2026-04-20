@@ -118,6 +118,19 @@ function schoolMatches(a, b) {
 function resolveDbTeamName(vcSchoolName, distinctTeams) {
   if (!vcSchoolName || !String(vcSchoolName).trim()) return null;
   const raw = String(vcSchoolName).trim();
+
+  // Hard-coded abbreviation overrides
+  const SCHOOL_OVERRIDES = {
+    "GCU": "Grand Canyon",
+    "gcu": "Grand Canyon",
+  };
+  const overrideKey = Object.keys(SCHOOL_OVERRIDES).find(k => k === raw || k === raw.toLowerCase());
+  if (overrideKey) {
+    const overrideName = SCHOOL_OVERRIDES[overrideKey];
+    const found = distinctTeams.find(t => t === overrideName) ?? overrideName;
+    return found;
+  }
+
   const lower = raw.toLowerCase();
 
   // 1. Exact match against existing DB teams
@@ -217,7 +230,13 @@ function fuzzyMatchPortalPlayer(p, fromSchool, allDbPlayers) {
  * Find DB row for a VC transfer row using name, prior school, and (if committed) destination.
  */
 function findPlayerForPortalRow(p, allDbPlayers, distinctTeams) {
-  const fullName = `${p.playerFirstName} ${p.playerLastName}`.trim();
+  // Hard-coded player name overrides (VC name → DB name)
+  const PLAYER_NAME_OVERRIDES = {
+    "Somtochukwu Cyril": "Somto Cyril",
+  };
+
+  const rawFullName = `${p.playerFirstName} ${p.playerLastName}`.trim();
+  const fullName = PLAYER_NAME_OVERRIDES[rawFullName] ?? rawFullName;
   const fromSchool = p.fromSchoolName;
   if (!fullName) return null;
 
@@ -273,12 +292,11 @@ let unmatched = 0;
 const unmatchedNames = [];
 
 for (const p of allPlayers) {
-  const fullName = `${p.playerFirstName} ${p.playerLastName}`.trim();
-  const school = p.fromSchoolName;
-
   const found = findPlayerForPortalRow(p, allDbPlayers, distinctTeams);
   let player = found?.player ?? null;
   const usedFuzzy = !!found?.fuzzy;
+  const fullName = `${p.playerFirstName} ${p.playerLastName}`.trim();
+  const school = p.fromSchoolName;
 
   if (player && usedFuzzy) {
     fuzzyMatched++;
