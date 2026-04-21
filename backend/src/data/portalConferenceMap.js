@@ -147,6 +147,7 @@ export const PORTAL_CONFERENCE_MAP = {
  */
 export const TEAM_DB_ALIASES = {
   Miami: "Miami FL",
+  "Miami (OH)": "Miami OH",
   UMass: "Massachusetts",
   FDU: "Fairleigh Dickinson",
   // Bart Torvik / DB spellings → PORTAL_CONFERENCE_MAP labels
