@@ -29,6 +29,7 @@ export function depthChartDisplayYear(year: string | null | undefined): string |
   if (year == null || year === "") return year;
   const raw = String(year).trim();
   const key = raw.toLowerCase();
+  if (key === "hs") return "Fr";  // incoming HS recruits display as freshmen, not bumped
   if (key === "fr") return "So";
   if (key === "so") return "Jr";
   if (key === "jr") return "Sr";

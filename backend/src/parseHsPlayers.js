@@ -66,7 +66,7 @@ for (let i = 5; i + 2 < lines.length; i++) {
   const { height, heightInches } = parseHeight(htWt);
   const canonicalTeam = resolveCanonicalTeamName(team, ALL_CANONICAL_TEAMS) ?? team;
 
-  players.push({ name, height, heightInches, position, team: canonicalTeam, year: "Fr" });
+  players.push({ name, height, heightInches, position, team: canonicalTeam, year: "HS" });
 }
 
 console.log(`Parsed ${players.length} committed HS players\n`);
@@ -80,21 +80,24 @@ await mongoose.connect(MONGO_URI);
 console.log("\nConnected to MongoDB");
 
 let upserted = 0;
-let skipped = 0;
+let updated  = 0;
+let skipped  = 0;
 
 for (const p of players) {
   const id = makeId(p.name);
   const result = await Player.updateOne(
     { id },
     {
-      $setOnInsert: {
-        id,
+      $set: {
         name: p.name,
         team: p.team,
         year: p.year,
         position: p.position,
         height: p.height,
         heightInches: p.heightInches,
+      },
+      $setOnInsert: {
+        id,
         inPortal: false,
         stats: {},
       },
@@ -103,10 +106,12 @@ for (const p of players) {
   );
   if (result.upsertedCount > 0) {
     upserted++;
+  } else if (result.modifiedCount > 0) {
+    updated++;
   } else {
     skipped++;
   }
 }
 
 await mongoose.disconnect();
-console.log(`\nDone — inserted: ${upserted}, already existed: ${skipped}`);
+console.log(`\nDone — inserted: ${upserted}, updated: ${updated}, unchanged: ${skipped}`);
