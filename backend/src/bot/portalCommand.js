@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
 import { Player } from "../models/Player.js";
 import { resolveCanonicalTeamName } from "../data/portalConferenceMap.js";
 import { HM_TEAMS, SITE_URL, canonicalPositions } from "../utils/constants.js";
@@ -124,6 +124,7 @@ export async function handlePortal(interaction) {
   const reply = await interaction.editReply({
     content: buildContent(capped, page, total, posFilter, hmFilter),
     components: totalPages > 1 ? [buildRow(page, totalPages)] : [],
+    flags: MessageFlags.SuppressEmbeds,
   });
 
   if (totalPages <= 1) return;
@@ -140,10 +141,11 @@ export async function handlePortal(interaction) {
     await btn.update({
       content: buildContent(capped, page, total, posFilter, hmFilter),
       components: [buildRow(page, totalPages)],
+      flags: MessageFlags.SuppressEmbeds,
     });
   });
 
   collector.on("end", async () => {
-    await interaction.editReply({ components: [buildRow(page, totalPages, true)] }).catch(() => {});
+    await interaction.editReply({ components: [buildRow(page, totalPages, true)], flags: MessageFlags.SuppressEmbeds }).catch(() => {});
   });
 }
