@@ -123,6 +123,9 @@ function resolveDbTeamName(vcSchoolName, distinctTeams) {
   const SCHOOL_OVERRIDES = {
     "GCU": "Grand Canyon",
     "gcu": "Grand Canyon",
+    "St. John's": "St. John's",
+    "St. Johns": "St. John's",
+    "Saint John's": "St. John's",
   };
   const overrideKey = Object.keys(SCHOOL_OVERRIDES).find(k => k === raw || k === raw.toLowerCase());
   if (overrideKey) {
