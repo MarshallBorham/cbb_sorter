@@ -5,6 +5,7 @@ import { depthChartSlotForPlayer, DepthSlot } from "../utils/depthChart.js";
 
 export const internalRouter = express.Router();
 
+
 const ANALYSIS_CLASSES = ["Sr", "Jr", "So", "Fr"] as const;
 type AnalysisClass = typeof ANALYSIS_CLASSES[number];
 

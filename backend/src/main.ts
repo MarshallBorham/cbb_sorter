@@ -169,7 +169,8 @@ mongoose
     // Run portal sync every 2 hours
     cron.schedule("0 */2 * * *", () => {
       console.log("[cron] Running scheduled portal sync...");
-      execFile("node", [path.join(__dirname, "syncPortal.js")], (err, stdout, stderr) => {
+      const npx = process.platform === "win32" ? "npx.cmd" : "npx";
+      execFile(npx, ["tsx", path.join(__dirname, "syncPortal.js")], (err, stdout, stderr) => {
         if (err) {
           console.error("[cron] Portal sync failed:", err.message);
           return;
