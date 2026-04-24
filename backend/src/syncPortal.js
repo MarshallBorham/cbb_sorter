@@ -126,6 +126,9 @@ function resolveDbTeamName(vcSchoolName, distinctTeams) {
     "St. John's": "St. John's",
     "St. Johns": "St. John's",
     "Saint John's": "St. John's",
+    "Miami": "Miami FL",
+    "Miami (OH)": "Miami OH",
+    "Miami University": "Miami OH",
   };
   const overrideKey = Object.keys(SCHOOL_OVERRIDES).find(k => k === raw || k === raw.toLowerCase());
   if (overrideKey) {
