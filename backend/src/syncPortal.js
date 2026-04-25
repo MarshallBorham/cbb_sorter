@@ -349,23 +349,23 @@ if (unmatchedNames.length > 0) {
   unmatchedNames.forEach((n) => console.log(`  - ${n}`));
 }
 
-// ── Manual portal additions (players not tracked by VC) ──────────────────────
+// ── Manual portal overrides (players not tracked by VC) ──────────────────────
 const MANUAL_PORTAL_PLAYERS = [
-  { name: "Dedan Thomas Jr." },
+  { name: "Dedan Thomas Jr.", committed: true, team: "Houston" },
 ];
 
-let manualAdded = 0;
 for (const entry of MANUAL_PORTAL_PLAYERS) {
   const match = allDbPlayers.find(p => p.name === entry.name);
   if (match) {
-    await Player.updateOne({ _id: match._id }, { $set: { inPortal: true } });
-    manualAdded++;
-    console.log(`Manual portal add: "${entry.name}"`);
+    const update = entry.committed
+      ? { inPortal: false, portalCommitted: true, ...(entry.team ? { team: entry.team } : {}) }
+      : { inPortal: true };
+    await Player.updateOne({ _id: match._id }, { $set: update });
+    console.log(`Manual portal override: "${entry.name}" → ${entry.committed ? `committed (${entry.team ?? "team unchanged"})` : "in portal"}`);
   } else {
-    console.warn(`Manual portal add: "${entry.name}" not found in DB`);
+    console.warn(`Manual portal override: "${entry.name}" not found in DB`);
   }
 }
-if (manualAdded) console.log(`  Manual additions: ${manualAdded}`);
 
 await mongoose.disconnect();
 console.log("\nDone");
