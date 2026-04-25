@@ -343,5 +343,23 @@ if (unmatchedNames.length > 0) {
   unmatchedNames.forEach((n) => console.log(`  - ${n}`));
 }
 
+// ── Manual portal additions (players not tracked by VC) ──────────────────────
+const MANUAL_PORTAL_PLAYERS = [
+  { name: "Dedan Thomas Jr." },
+];
+
+let manualAdded = 0;
+for (const entry of MANUAL_PORTAL_PLAYERS) {
+  const match = allDbPlayers.find(p => p.name === entry.name);
+  if (match) {
+    await Player.updateOne({ _id: match._id }, { $set: { inPortal: true } });
+    manualAdded++;
+    console.log(`Manual portal add: "${entry.name}"`);
+  } else {
+    console.warn(`Manual portal add: "${entry.name}" not found in DB`);
+  }
+}
+if (manualAdded) console.log(`  Manual additions: ${manualAdded}`);
+
 await mongoose.disconnect();
 console.log("\nDone");
